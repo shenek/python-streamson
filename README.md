@@ -18,3 +18,12 @@ TODO
 ('{"users"}[1]', 'carl')
 ('{"users"}[2]', 'bob')
 ```
+
+## Developer Docs
+
+## Build
+TODO poetry for dev-dependencies pip for install
+### Precommit deployment
+```bash
+poetry run pre-commit install -t pre-push
+```

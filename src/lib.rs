@@ -1,8 +1,6 @@
-use pyo3::prelude::*;
 use pyo3::create_exception;
-use pyo3::wrap_pyfunction;
-use pyo3::types::{PyBytes, PyTuple};
 use pyo3::exceptions;
+use pyo3::prelude::*;
 
 use std::sync::{Arc, Mutex};
 use streamson_lib::{error, handler, matcher, Collector};
@@ -10,7 +8,7 @@ use streamson_lib::{error, handler, matcher, Collector};
 create_exception!(streamson, StreamsonError, exceptions::ValueError);
 
 impl From<error::General> for StreamsonError {
-    fn from(gerror: error::General) -> Self {
+    fn from(_gerror: error::General) -> Self {
         Self
     }
 }
@@ -24,7 +22,6 @@ pub struct SimpleStreamson {
 
 #[pymethods]
 impl SimpleStreamson {
-
     /// Create a new instance of SimpleStreamson
     ///
     /// # Arguments
@@ -59,20 +56,16 @@ impl SimpleStreamson {
     /// # Returns
     /// * `None` - if no data present
     /// * `Some(<path>, <bytes>)` if there are some data
-    fn pop(&mut self) -> Option<(String, Vec<u8>)>{
-
+    fn pop(&mut self) -> Option<(String, Vec<u8>)> {
         match self.handler.lock().unwrap().pop() {
-            Some((path, bytes)) => {
-                Some((path, bytes.to_vec()))
-            },
+            Some((path, bytes)) => Some((path, bytes.to_vec())),
             None => None,
         }
-
     }
 }
 /// This module is a python module implemented in Rust.
 #[pymodule]
-fn streamson(py: Python, m: &PyModule) -> PyResult<()> {
+fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<SimpleStreamson>()?;
 
     Ok(())
