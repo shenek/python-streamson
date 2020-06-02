@@ -11,22 +11,22 @@ repos:
 -   repo:  local
     hooks:
     -   id: black
-        name: Black formatter
+        name: "Python: Black formatter"
         entry: poetry run black --check
         language: system
         types: [python]
     -   id: flake8
-        name: Flake8 linter
+        name: "Python: Flake8 linter"
         entry: poetry run flake8
         language: system
         types: [python]
     -   id: isort
-        name: isort formatter
+        name: "Python: isort formatter"
         entry: poetry run isort -rc -c
         language: system
         types: [python]
     -   id: mypy
-        name: mypy linter
+        name: "Python: mypy linter"
         entry: poetry run mypy --config-file mypy.ini
         language: system
         types: [python]
@@ -35,5 +35,8 @@ repos:
     rev: master
     hooks:
     -   id: fmt
+        name: "Rust: fmt"
     -   id: cargo-check
+        name: "Rust: check"
     -   id: clippy
+        name: "Rust: clippy"

@@ -25,13 +25,16 @@ multi_line_output = 3
 length_sort = false
 
 [tool.poetry.dependencies]
-python = ">=3.6.1"
+python = "^3.6"
 
 [tool.poetry.dev-dependencies]
+bandit = "~1.6.2"
 black = {version = "*", allow-prereleases = true}
 flake8 = "*"
 isort = {version = "*", extras = ["pyproject"]}
 mypy = "*"
 pytest = "^5.2"
-pre-commit = "~2.4.0"
+pre-commit = {version = "~2.4.0", python = "^3.6.1"}
 maturin = "~0.8.0"
+safety = "~1.9.0"
+urllib3 = ">=1.24.2"

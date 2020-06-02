@@ -3,3 +3,4 @@
 *.swo
 *.swp
 .mypy_cache/
+poetry.lock

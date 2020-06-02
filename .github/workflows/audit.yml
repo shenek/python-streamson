@@ -1,0 +1,49 @@
+name: Security audit
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  push:
+    paths:
+      - '**/Cargo.toml'
+      - '**/poetry.lock'
+  pull_request:
+
+jobs:
+  audit-rust:
+    name: Run cargo security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  audit-python:
+    name: Check for python security issues
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install poetry
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+
+      - name: Install virtualenv
+        run: |
+          sudo apt-get install python3-venv
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv /tmp/venv
+          source /tmp/venv/bin/activate
+          env PATH="${PATH}:${HOME}/.poetry/bin" poetry install
+
+      - name: Run bandit
+        run: |
+          source /tmp/venv/bin/activate
+          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run bandit -r streamson/
+
+      - name: Run safety
+        run: |
+          source /tmp/venv/bin/activate
+          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run safety check
