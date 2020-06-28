@@ -31,5 +31,5 @@ name = "streamson"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.10", features = ["extension-module"] }
-streamson-lib = "0.2.0"
+pyo3 = { version = "0.11", features = ["extension-module"] }
+streamson-lib = "1.0.1"
