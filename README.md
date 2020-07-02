@@ -12,11 +12,12 @@ pip install streamson
 ```
 
 ## Usage
-### Simple
+### Select users
 ```python
 >>> import streamson
->>> data = [b'{"users": ["john","carl","bob"]}']
->>> extracted = streamson.extract_iter((e for e in data), ['{"users"}[]'])
+>>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
+>>> matcher = streamson.SimpleMatcher('{"users"}[]'])
+>>> extracted = streamson.extract_iter((e for e in data), matcher)
 >>> for path, parsed in extracted:
 ...     path, parsed
 ...
@@ -24,6 +25,51 @@ pip install streamson
 ('{"users"}[1]', 'carl')
 ('{"users"}[2]', 'bob')
 ```
+
+### Select users and groups
+```python
+>>> import streamson
+>>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
+>>> matcher = streamson.SimpleMatcher('{"users"}[]']) | streamson.SimpleMatcher('{"groups"}[]'])
+>>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> for path, parsed in extracted:
+...     path, parsed
+...
+('{"users"}[0]', 'john')
+('{"users"}[1]', 'carl')
+('{"users"}[2]', 'bob')
+('{"groups"}[0]', 'admins')
+('{"groups"}[1]', 'staff')
+```
+
+### Select only first level parts
+```python
+>>> import streamson
+>>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
+>>> matcher = streamson.DepthMatcher(1, 1)
+>>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> for path, parsed in extracted:
+...     path, parsed
+...
+('{"users"}', ['john', 'carl', 'bob'])
+('{"groups"}', ['admins', 'staff'])
+('{"org"}', 'university')
+```
+
+### Select second first level parts exclude first records
+```python
+>>> import streamson
+>>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
+>>> matcher = streamson.DepthMatcher(2, 2) & ~streamson.SimpleMatcher('{}[0]')
+>>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> for path, parsed in extracted:
+...     path, parsed
+...
+('{"users"}[1]', 'carl')
+('{"users"}[2]', 'bob')
+('{"groups"}[1]', 'staff')
+```
+
 
 ## Motivation
 This project is meant to be use as a fast json splitter.
