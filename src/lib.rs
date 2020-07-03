@@ -1,6 +1,4 @@
-use pyo3::create_exception;
-use pyo3::exceptions;
-use pyo3::prelude::*;
+use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
 
 use std::sync::{Arc, Mutex};
 use streamson_lib::{error, handler, matcher, Collector};
@@ -18,7 +16,7 @@ impl From<error::General> for StreamsonError {
 #[pyclass]
 #[derive(Debug)]
 pub struct RustMatcher {
-    inner: Option<matcher::Combinator>,
+    inner: matcher::Combinator,
 }
 
 #[pymethods]
@@ -31,7 +29,7 @@ impl RustMatcher {
     #[staticmethod]
     pub fn simple(path: String) -> PyResult<Self> {
         Ok(Self {
-            inner: Some(matcher::Combinator::new(matcher::Simple::new(path))),
+            inner: matcher::Combinator::new(matcher::Simple::new(path)),
         })
     }
 
@@ -43,45 +41,32 @@ impl RustMatcher {
     #[staticmethod]
     pub fn depth(min_depth: usize, max_depth: Option<usize>) -> PyResult<Self> {
         Ok(Self {
-            inner: Some(matcher::Combinator::new(matcher::Depth::new(
-                min_depth, max_depth,
-            ))),
+            inner: matcher::Combinator::new(matcher::Depth::new(min_depth, max_depth)),
         })
     }
+}
 
-    pub fn inv(&mut self) -> PyResult<Self> {
-        if let Some(inner) = self.inner.take() {
-            Ok(Self {
-                inner: Some(!inner),
-            })
-        } else {
-            Err(MatcherUsed.into())
+#[pyproto]
+impl PyNumberProtocol for RustMatcher {
+    /// Inverts the matcher
+    fn __invert__(&self) -> Self {
+        Self {
+            inner: !self.inner.clone(),
         }
     }
 
-    pub fn any(&mut self, right: &mut RustMatcher) -> PyResult<Self> {
-        if let (Some(left), Some(right)) = (self.inner.take(), right.inner.take()) {
-            Ok(Self {
-                inner: Some(left | right),
-            })
-        } else {
-            Err(MatcherUsed.into())
+    /// One of the matcher should match
+    fn __or__(lhs: PyRef<'p, Self>, rhs: PyRef<'p, Self>) -> Self {
+        Self {
+            inner: lhs.inner.clone() | rhs.inner.clone(),
         }
     }
 
-    pub fn all(&mut self, right: &mut RustMatcher) -> PyResult<Self> {
-        if let (Some(left), Some(right)) = (self.inner.take(), right.inner.take()) {
-            Ok(Self {
-                inner: Some(left & right),
-            })
-        } else {
-            Err(MatcherUsed.into())
+    /// All matchers should match
+    fn __and__(lhs: PyRef<'p, Self>, rhs: PyRef<'p, Self>) -> Self {
+        Self {
+            inner: lhs.inner.clone() & rhs.inner.clone(),
         }
-    }
-
-    #[getter]
-    pub fn _used(&self) -> bool {
-        self.inner.is_none()
     }
 }
 
@@ -99,10 +84,10 @@ impl Streamson {
     /// # Arguments
     /// * `matches` - a list of valid simple matches (e.g. `{"users"}`, `[]{"name"}`, `[0]{}`)
     #[new]
-    pub fn new(matcher: &mut RustMatcher) -> PyResult<Self> {
+    pub fn new(matcher: &RustMatcher) -> PyResult<Self> {
         let handler = Arc::new(Mutex::new(handler::Buffer::new()));
-        let matcher = matcher.inner.take().ok_or(MatcherUsed)?;
-        let collector = Collector::new().add_matcher(Box::new(matcher), &[handler.clone()]);
+        let collector =
+            Collector::new().add_matcher(Box::new(matcher.inner.clone()), &[handler.clone()]);
         Ok(Self { collector, handler })
     }
 
