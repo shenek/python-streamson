@@ -8,7 +8,7 @@ manylinux = "2014"
 
 [tool.poetry]
 name = "streamson-python"
-version = "0.1.0"
+version = "1.0.0"
 description = "Python wrappers around streamson"
 authors = ["Stepan Henek"]
 license = "MIT"
