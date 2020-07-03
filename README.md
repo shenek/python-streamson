@@ -84,6 +84,17 @@ Poetry is used to manage python dev-dependencies. After you [install](https://py
 poetry install
 ```
 
+This project also requires the nighly version of Rust.
+First you need to [install rustup](https://rustup.rs/).
+```bash
+rustup install nightly
+```
+
+And you might need to set it as a default toolchain.
+```bash
+rustup default nightly
+```
+
 ### Precommit deployment
 To pass the basic lints you may want to install pre-push hook to
 pre-commit to be sure that CI won't fail in the first step.
