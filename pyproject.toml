@@ -14,7 +14,7 @@ authors = ["Stepan Henek"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/shenek/python-streamson"
-keywords = ["json", "slitter"]
+keywords = ["json", "splitter"]
 
 [tool.black]
 line-length = 120
