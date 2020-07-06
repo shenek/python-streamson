@@ -28,10 +28,13 @@ length_sort = false
 python = "^3.6"
 
 [tool.poetry.dev-dependencies]
+cffi = "*"
 bandit = "~1.6.2"
 black = {version = "*", allow-prereleases = true}
 flake8 = "*"
+hyperjson = "*"
 isort = {version = "*", extras = ["pyproject"]}
+ijson = "*"
 mypy = "*"
 pytest = "^5.2"
 pre-commit = {version = "~2.4.0", python = "^3.6.1"}

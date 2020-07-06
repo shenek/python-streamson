@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+
+import argparse
+import functools
+import json
+import pathlib
+import resource
+import subprocess
+import sys
+import time
+import typing
+from contextlib import nullcontext  # type: ignore
+
+import hyperjson as hyperjson_lib
+from ijson.backends.python import parse as ijson_python_parse
+from ijson.backends.yajl2 import parse as ijson_yajl2_parse
+from ijson.backends.yajl2_c import parse as ijson_yajl2_c_parse
+from ijson.backends.yajl2_cffi import parse as ijson_yajl2_cffi_parse
+
+from streamson import SimpleMatcher, extract_iter
+
+BUFF_SIZE = 1024 * 1024  # use 1MB buffer
+
+
+def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
+    count = 0
+    with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
+        with pathlib.Path(src_path).open() as inputf:
+            for prefix, event, value in parse_function(inputf, buf_size=BUFF_SIZE):
+                if event == "string" and (prefix == "users.item.name" or prefix == "groups.item.name"):
+                    count += 1
+                    if outputf:
+                        outputf.write(f"{value}\n")
+    return count
+
+
+ijson_python = functools.partial(ijson_generic, ijson_python_parse)
+ijson_yajl2 = functools.partial(ijson_generic, ijson_yajl2_parse)
+ijson_yajl2_c = functools.partial(ijson_generic, ijson_yajl2_c_parse)
+ijson_yajl2_cffi = functools.partial(ijson_generic, ijson_yajl2_cffi_parse)
+
+
+def streamson(src_path: str, dst_path: typing.Optional[str] = None) -> int:
+    matcher = SimpleMatcher('{"users"}{"name"}') | SimpleMatcher('{"groups"}{"name"}')
+
+    def reader(fd) -> typing.Generator[bytes, None, None]:
+        while (data := fd.read(BUFF_SIZE)) != b"":
+            yield data
+
+    count = 0
+
+    with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
+        with pathlib.Path(src_path).open("rb") as inputf:
+            for path, data in extract_iter(reader(inputf), matcher):
+                count += 1
+                if outputf:
+                    outputf.write(f"{data['name']}\n")
+
+    return count
+
+
+def std_generic(load_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
+    with pathlib.Path(src_path).open() as f:
+        data = load_function(f)
+    if dst_path:
+        with pathlib.Path(dst_path).open("w") as f:
+            for user in data["users"]:
+                f.write(f"{user['name']}\n")
+            for group in data["groups"]:
+                f.write(f"{group['name']}\n")
+
+    return len(data["users"]) + len(data["groups"])
+
+
+stdlib = functools.partial(std_generic, json.load)
+hyperjson = functools.partial(std_generic, hyperjson_lib.load)
+
+
+def generate(output_path: str, user_count: int, group_count: int):
+    with pathlib.Path(output_path).open("w") as f:
+        f.write("{\n")
+        f.write('\t"users": [\n')
+        users = []
+        for i in range(user_count):
+            users.append(f'\t\t{json.dumps({"id": i, "name": f"user{i:08x}"})}')
+        f.write(",\n".join(users))
+        f.write("\n\t],\n")
+        f.write('\t"groups": [\n')
+        groups = []
+        for i in range(group_count):
+            groups.append(f'\t\t{json.dumps({"id": i, "name": f"group{i:08x}"})}')
+        f.write(",\n".join(groups))
+        f.write("\t]\n")
+        f.write("}\n")
+
+
+def memory(strategy: str, input_path: str):
+    START_STEP = 1000
+    args = [__file__, "_bench", "--strategy", strategy, "--input-file", input_path]
+
+    def call(limit) -> int:
+        retval = subprocess.call(
+            args + ["--memory-limit", str(limit)], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        )
+        print(f"{limit}MB - {retval == 0}", file=sys.stderr)
+        return retval
+
+    # first find passing max
+    high = START_STEP
+    while call(high) != 0:
+        high += START_STEP
+
+    # cut interval
+    low = 0
+
+    while low < high:
+        current = (low + high) // 2
+        if call(current) == 0:
+            high = current
+            last_passed = current
+        else:
+            low = current + 1
+
+    print(f"{last_passed}MB")
+
+
+def times(strategy: str, input_path: str, attempts: int):
+    args = [__file__, "_bench", "--strategy", strategy, "--input-file", input_path]
+
+    def call(attempt_number: int) -> float:
+        output = subprocess.check_output(args)
+
+        res = float(output.strip())
+        print(f"#{attempt_number}: {res:.5f}s", file=sys.stderr)
+        return res
+
+    results = []
+    for i in range(attempts):
+        results.append(call(i))
+
+    print(f"Average of {len(results)} attempts: {sum(results) / len(results):.5f}s")
+
+
+def bench(
+    strategy: str,
+    input_path: str,
+    output_path: typing.Optional[str],
+    memory_limit: int = 0,
+    check_total: typing.Optional[int] = None,
+):
+    if memory_limit:
+        hard = memory_limit * 1024 * 1024
+        soft = hard
+        resource.setrlimit(resource.RLIMIT_DATA, (soft, hard))
+    start_time = time.monotonic()
+    total = STRATEGIES[strategy](input_path, output_path)
+    total_time = time.monotonic() - start_time
+
+    if check_total and total != check_total:
+        print(f"Failed to check {total} != {check_total}")
+        sys.exit(1)
+
+    print(total_time)
+
+
+STRATEGIES: typing.Dict[str, typing.Callable] = {
+    "hyperjson": hyperjson,
+    "ijson-python": ijson_python,
+    "ijson-yajl2": ijson_yajl2,
+    "ijson-yajl2_c": ijson_yajl2_c,
+    "ijson-yajl2_cffi": ijson_yajl2_cffi,
+    "streamson": streamson,
+    "stdlib": stdlib,
+}
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="streamson-bench")
+
+    subparsers = parser.add_subparsers(help="Commands", dest="cmd")
+    subparsers.required = True
+
+    gen_parser = subparsers.add_parser("generate", help="generate input data")
+    gen_parser.add_argument("-u", "--users", help="user count", default=1000, type=int)
+    gen_parser.add_argument("-g", "--groups", help="group count", default=1000, type=int)
+    gen_parser.add_argument("-o", "--output-file", help="output-file", required=True)
+
+    mem_parser = subparsers.add_parser("memory", help="try to figure out the max memory usage")
+    mem_parser.add_argument("-i", "--input-file", help="input json file", required=True)
+    mem_parser.add_argument("-s", "--strategy", help="parse strategy", choices=STRATEGIES.keys(), required=True)
+
+    time_parser = subparsers.add_parser("time", help="performs several measurements and calculates the average",)
+    time_parser.add_argument("-i", "--input-file", help="input json file", required=True)
+    time_parser.add_argument("-s", "--strategy", help="parse strategy", choices=STRATEGIES.keys(), required=True)
+    time_parser.add_argument(
+        "-a", "--attempts", help="number of attempts (default=10)", type=int, default=10,
+    )
+
+    bench_parser = subparsers.add_parser("_bench", help="performs a signle benchmark (outputs consumed time)")
+    bench_parser.add_argument("-s", "--strategy", help="parse strategy", choices=STRATEGIES.keys(), required=True)
+    bench_parser.add_argument("-i", "--input-file", help="input json file", required=True)
+    bench_parser.add_argument("-o", "--output-file", help="output csv file", default=None)
+    bench_parser.add_argument("-l", "--memory-limit", help="memory limit (in MB)", default=0, type=int)
+    bench_parser.add_argument(
+        "-c", "--check-total", help="check total group and user count", default=None, type=int,
+    )
+
+    options = parser.parse_args()
+
+    CMDS = {
+        "generate": lambda: generate(options.output_file, options.users, options.groups),
+        "memory": lambda: memory(options.strategy, options.input_file),
+        "time": lambda: times(options.strategy, options.input_file, options.attempts),
+        "_bench": lambda: bench(
+            options.strategy, options.input_file, options.output_file, options.memory_limit, options.check_total,
+        ),
+    }
+
+    CMDS[options.cmd]()
