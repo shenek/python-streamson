@@ -11,12 +11,6 @@ import time
 import typing
 from contextlib import nullcontext  # type: ignore
 
-import hyperjson as hyperjson_lib
-from ijson.backends.python import parse as ijson_python_parse
-from ijson.backends.yajl2 import parse as ijson_yajl2_parse
-from ijson.backends.yajl2_c import parse as ijson_yajl2_c_parse
-from ijson.backends.yajl2_cffi import parse as ijson_yajl2_cffi_parse
-
 from streamson import SimpleMatcher, extract_iter
 
 BUFF_SIZE = 1024 * 1024  # use 1MB buffer
@@ -32,12 +26,6 @@ def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typi
                     if outputf:
                         outputf.write(f"{value}\n")
     return count
-
-
-ijson_python = functools.partial(ijson_generic, ijson_python_parse)
-ijson_yajl2 = functools.partial(ijson_generic, ijson_yajl2_parse)
-ijson_yajl2_c = functools.partial(ijson_generic, ijson_yajl2_c_parse)
-ijson_yajl2_cffi = functools.partial(ijson_generic, ijson_yajl2_cffi_parse)
 
 
 def streamson(src_path: str, dst_path: typing.Optional[str] = None) -> int:
@@ -73,7 +61,34 @@ def std_generic(load_function: typing.Callable, src_path: str, dst_path: typing.
 
 
 stdlib = functools.partial(std_generic, json.load)
-hyperjson = functools.partial(std_generic, hyperjson_lib.load)
+
+
+STRATEGIES: typing.Dict[str, typing.Callable] = {
+    "streamson": streamson,
+    "stdlib": stdlib,
+}
+
+
+try:
+    import hyperjson
+
+    STRATEGIES["hyperjson"] = functools.partial(std_generic, hyperjson.load)
+except ImportError:
+    pass
+
+try:
+    from ijson.backends.python import parse as ijson_python_parse
+    from ijson.backends.yajl2 import parse as ijson_yajl2_parse
+    from ijson.backends.yajl2_c import parse as ijson_yajl2_c_parse
+    from ijson.backends.yajl2_cffi import parse as ijson_yajl2_cffi_parse
+
+    STRATEGIES["ijson-python"] = functools.partial(ijson_generic, ijson_python_parse)
+    STRATEGIES["ijson-yajl2"] = functools.partial(ijson_generic, ijson_yajl2_parse)
+    STRATEGIES["ijson-yajl2_c"] = functools.partial(ijson_generic, ijson_yajl2_c_parse)
+    STRATEGIES["ijson-yajl2_cffi"] = functools.partial(ijson_generic, ijson_yajl2_cffi_parse)
+
+except ImportError:
+    pass
 
 
 def generate(output_path: str, user_count: int, group_count: int):
@@ -162,16 +177,6 @@ def bench(
 
     print(total_time)
 
-
-STRATEGIES: typing.Dict[str, typing.Callable] = {
-    "hyperjson": hyperjson,
-    "ijson-python": ijson_python,
-    "ijson-yajl2": ijson_yajl2,
-    "ijson-yajl2_c": ijson_yajl2_c,
-    "ijson-yajl2_cffi": ijson_yajl2_cffi,
-    "streamson": streamson,
-    "stdlib": stdlib,
-}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="streamson-bench")
