@@ -26,6 +26,10 @@ length_sort = false
 
 [tool.poetry.dependencies]
 python = "^3.6"
+hyperjson = {version = "*", optional = true}
+
+[tool.poetry.extras]
+hyperjson  = ["hyperjson"]
 
 [tool.poetry.dev-dependencies]
 cffi = "*"

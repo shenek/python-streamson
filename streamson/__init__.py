@@ -1,4 +1,12 @@
-import json
+try:
+    import hyperjson
+
+    json_module = hyperjson
+except ImportError:
+    import json
+
+    json_module = json
+
 import typing
 from array import array
 
@@ -55,5 +63,5 @@ def extract_iter(
         res = streamson.pop()
         while res is not None:
             path, data = res
-            yield path, json.loads(array("B", data).tobytes())
+            yield path, json_module.loads(array("B", data).tobytes())
             res = streamson.pop()
