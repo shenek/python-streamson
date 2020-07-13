@@ -23,7 +23,7 @@ It parses entire file and creates a huge python dict.
 ### hyperjson (0.2.4)
 Uses Rust's serde and matches the API of standard python json module.
 
-### streamson (1.0.0)
+### streamson (2.0.0)
 Uses python bindings for streamson (this project).
 Works in a stream mode using 1MB input buffer.
 
@@ -61,7 +61,7 @@ Works in a stream mode using 1MB input buffer.
 |------------------|-----------------|-----------------|------------------|
 | stdlib           | 0.06957s        |  0.31471s       |  0.62557s        |
 | hyperjson        | 0.10709s        |  0.49982s       |  0.98962s        |
-| streamson        | 0.43503s        |  2.21967s       |  4.41669s        |
+| streamson        | 0.32700s        |  1.62874s       |  3.31072s        |
 | ijson-yajl2      | 1.73574s        |  8.84899s       | 17.28310s        |
 | ijson-yajl2_c    | 0.20588s        |  1.03259s       |  2.04052s        |
 | ijson-yajl2_cffi | 1.63556s        |  8.06540s       | 15.89699s        |
