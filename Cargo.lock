@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "streamson-python"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "pyo3",
  "streamson-lib",
