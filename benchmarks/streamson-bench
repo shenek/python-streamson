@@ -11,7 +11,7 @@ import time
 import typing
 from contextlib import nullcontext  # type: ignore
 
-from streamson import SimpleMatcher, extract_iter
+from streamson import SimpleMatcher, extract_iter, extract_iter_raw
 
 BUFF_SIZE = 1024 * 1024  # use 1MB buffer
 
@@ -28,7 +28,7 @@ def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typi
     return count
 
 
-def streamson(src_path: str, dst_path: typing.Optional[str] = None) -> int:
+def streamson_generic(extract_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
     matcher = SimpleMatcher('{"users"}{"name"}') | SimpleMatcher('{"groups"}{"name"}')
 
     def reader(fd) -> typing.Generator[bytes, None, None]:
@@ -39,12 +39,16 @@ def streamson(src_path: str, dst_path: typing.Optional[str] = None) -> int:
 
     with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
         with pathlib.Path(src_path).open("rb") as inputf:
-            for path, data in extract_iter(reader(inputf), matcher):
+            for path, data in extract_function(reader(inputf), matcher):
                 count += 1
                 if outputf:
-                    outputf.write(f"{data['name']}\n")
+                    outputf.write(f"{data}\n")
 
     return count
+
+
+streamson = functools.partial(streamson_generic, extract_iter)
+streamson_raw = functools.partial(streamson_generic, extract_iter_raw)
 
 
 def std_generic(load_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
@@ -65,6 +69,7 @@ stdlib = functools.partial(std_generic, json.load)
 
 STRATEGIES: typing.Dict[str, typing.Callable] = {
     "streamson": streamson,
+    "streamson-raw": streamson_raw,
     "stdlib": stdlib,
 }
 
