@@ -84,3 +84,20 @@ def extract_iter_raw(
             path, data = res
             yield path, array("B", data).tobytes()
             res = streamson.pop()
+
+
+def extract_fd(
+    input_fd: typing.IO[bytes], matcher: Matcher, buffer_size: int = 1024 * 1024,
+) -> typing.Generator[typing.Tuple[str, bytes], None, None]:
+    streamson = _Streamson(matcher.inner)
+    data = input_fd.read(buffer_size)
+
+    while data:
+        streamson.feed(data)
+        res = streamson.pop()
+        while res is not None:
+            path, data = res
+            yield path, json_module.loads(array("B", data).tobytes())
+            res = streamson.pop()
+
+        data = input_fd.read(buffer_size)

@@ -11,7 +11,7 @@ import time
 import typing
 from contextlib import nullcontext  # type: ignore
 
-from streamson import SimpleMatcher, extract_iter, extract_iter_raw
+from streamson import SimpleMatcher, extract_fd, extract_iter, extract_iter_raw
 
 BUFF_SIZE = 1024 * 1024  # use 1MB buffer
 
@@ -47,6 +47,19 @@ def streamson_generic(extract_function: typing.Callable, src_path: str, dst_path
     return count
 
 
+def streamson_fd(src_path: str, dst_path: typing.Optional[str] = None):
+    matcher = SimpleMatcher('{"users"}{"name"}') | SimpleMatcher('{"groups"}{"name"}')
+
+    count = 0
+    with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
+        with pathlib.Path(src_path).open("rb") as inputf:
+            for path, data in extract_fd(inputf, matcher, buffer_size=BUFF_SIZE):
+                count += 1
+                if outputf:
+                    outputf.write(f"{data!r}\n")
+    return count
+
+
 streamson = functools.partial(streamson_generic, extract_iter)
 streamson_raw = functools.partial(streamson_generic, extract_iter_raw)
 
@@ -70,6 +83,7 @@ stdlib = functools.partial(std_generic, json.load)
 STRATEGIES: typing.Dict[str, typing.Callable] = {
     "streamson": streamson,
     "streamson-raw": streamson_raw,
+    "streamson-fd": streamson_fd,
     "stdlib": stdlib,
 }
 

@@ -110,11 +110,12 @@ impl Streamson {
     /// * `Some(<path>, <bytes>)` if there are some data
     fn pop(&mut self) -> Option<(String, Vec<u8>)> {
         match self.handler.lock().unwrap().pop() {
-            Some((path, bytes)) => Some((path, bytes.to_vec())),
+            Some((path, bytes)) => Some((path, bytes)),
             None => None,
         }
     }
 }
+
 /// This module is a python module implemented in Rust.
 #[pymodule]
 fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
