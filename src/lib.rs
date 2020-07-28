@@ -12,6 +12,12 @@ impl From<error::General> for StreamsonError {
     }
 }
 
+impl From<error::Matcher> for StreamsonError {
+    fn from(_gerror: error::Matcher) -> Self {
+        Self
+    }
+}
+
 /// Python wrapper around matchers
 #[pyclass]
 #[derive(Debug)]
@@ -29,7 +35,9 @@ impl RustMatcher {
     #[staticmethod]
     pub fn simple(path: String) -> PyResult<Self> {
         Ok(Self {
-            inner: matcher::Combinator::new(matcher::Simple::new(path)),
+            inner: matcher::Combinator::new(
+                matcher::Simple::new(&path).map_err(StreamsonError::from)?,
+            ),
         })
     }
 
