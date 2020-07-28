@@ -29,7 +29,7 @@ def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typi
 
 
 def streamson_generic(extract_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
-    matcher = SimpleMatcher('{"users"}{"name"}') | SimpleMatcher('{"groups"}{"name"}')
+    matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
 
     def reader(fd) -> typing.Generator[bytes, None, None]:
         while (data := fd.read(BUFF_SIZE)) != b"":
@@ -48,7 +48,7 @@ def streamson_generic(extract_function: typing.Callable, src_path: str, dst_path
 
 
 def streamson_fd(src_path: str, dst_path: typing.Optional[str] = None):
-    matcher = SimpleMatcher('{"users"}{"name"}') | SimpleMatcher('{"groups"}{"name"}')
+    matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
 
     count = 0
     with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
