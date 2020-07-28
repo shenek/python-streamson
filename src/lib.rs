@@ -115,11 +115,11 @@ impl Streamson {
     ///
     /// # Returns
     /// * `None` - if no data present
-    /// * `Some(<path>, <bytes>)` if there are some data
-    fn pop(&mut self) -> Option<(String, Vec<u8>)> {
+    /// * `Some(<path>, <data_str>)` if there are some data
+    fn pop(&mut self) -> PyResult<Option<(String, String)>> {
         match self.handler.lock().unwrap().pop() {
-            Some((path, bytes)) => Some((path, bytes)),
-            None => None,
+            Some((path, bytes)) => Ok(Some((path, String::from_utf8(bytes)?))),
+            None => Ok(None),
         }
     }
 }

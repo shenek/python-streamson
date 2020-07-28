@@ -8,7 +8,6 @@ except ImportError:
     json_module = json
 
 import typing
-from array import array
 
 from streamson.streamson import RustMatcher as _RustMatcher
 from streamson.streamson import Streamson as _Streamson
@@ -63,7 +62,7 @@ def extract_iter(
         res = streamson.pop()
         while res is not None:
             path, data = res
-            yield path, json_module.loads(array("B", data).tobytes())
+            yield path, json_module.loads(data)
             res = streamson.pop()
 
 
@@ -81,8 +80,7 @@ def extract_iter_raw(
         streamson.feed(item)
         res = streamson.pop()
         while res is not None:
-            path, data = res
-            yield path, array("B", data).tobytes()
+            yield res
             res = streamson.pop()
 
 
@@ -97,7 +95,7 @@ def extract_fd(
         res = streamson.pop()
         while res is not None:
             path, data = res
-            yield path, json_module.loads(array("B", data).tobytes())
+            yield path, json_module.loads(data)
             res = streamson.pop()
 
         data = input_fd.read(buffer_size)
