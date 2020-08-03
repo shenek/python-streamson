@@ -14,6 +14,10 @@ from streamson.streamson import Streamson as _Streamson
 
 
 class Matcher:
+    """
+    Python Matcher wrapper around actual Rust streamson wrappers.
+    """
+
     def __init__(self, rust_matcher: _RustMatcher):
         self.inner = rust_matcher
 
@@ -43,6 +47,7 @@ class SimpleMatcher(Matcher):
         {"user"}[] will match {"user"}[0], {"user"}[1], ...
         {}[0] will match {"user"}[0], {"group"}[0]
 
+        :param: path: which will be used to create a SimpleMatcher
         """
         super().__init__(_RustMatcher.simple(path))
 
@@ -51,10 +56,10 @@ def extract_iter(
     input_gen: typing.Generator[bytes, None, None], matcher: Matcher,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
     """ Extracts json specified by given list of simple matches
-    :param: input_gen - input generator
-    :param: simple_matches - matches to check
+    :param: input_gen: input generator
+    :param: matcher: used matcher
 
-    :returns: (string, data) generator
+    :yields: path and parsed json
     """
     streamson = _Streamson(matcher.inner)
     for item in input_gen:
@@ -70,10 +75,10 @@ def extract_iter_raw(
     input_gen: typing.Generator[bytes, None, None], matcher: Matcher,
 ) -> typing.Generator[typing.Tuple[str, bytes], None, None]:
     """ Extracts raw bytes specified by given list of simple matches
-    :param: input_gen - input generator
-    :param: simple_matches - matches to check
+    :param: input_gen: - input generator
+    :param: matcher: used matcher
 
-    :returns: (string, bytes) generator
+    :yields: path and related bytes
     """
     streamson = _Streamson(matcher.inner)
     for item in input_gen:
@@ -87,6 +92,13 @@ def extract_iter_raw(
 def extract_fd(
     input_fd: typing.IO[bytes], matcher: Matcher, buffer_size: int = 1024 * 1024,
 ) -> typing.Generator[typing.Tuple[str, bytes], None, None]:
+    """ Extracts json specified by given list of simple matches
+    :param: input_fd: input fd
+    :param: buffer_size: how many bytes can be read from a file at once
+    :param: matcher: used matcher
+
+    :yields: path and parsed json
+    """
     streamson = _Streamson(matcher.inner)
     data = input_fd.read(buffer_size)
 

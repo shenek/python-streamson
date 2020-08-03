@@ -30,6 +30,11 @@ repos:
         entry: poetry run mypy --config-file mypy.ini
         language: system
         types: [python]
+    -   id: darglint
+        name: "Python: darglint linter"
+        entry: poetry run darglint
+        language: system
+        types: [python]
 
 -   repo: https://github.com/doublify/pre-commit-rust
     rev: master
