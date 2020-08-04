@@ -53,13 +53,14 @@ class SimpleMatcher(Matcher):
 
 
 def extract_iter(
-    input_gen: typing.Generator[bytes, None, None], matcher: Matcher,
+    input_gen: typing.Generator[bytes, None, None], matcher: Matcher, parse: bool = True,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
     """ Extracts json specified by given list of simple matches
     :param: input_gen: input generator
     :param: matcher: used matcher
+    :param: parse: if True data are parsed to json, otherwise it remains String
 
-    :yields: path and parsed json
+    :yields: path and (parsed json or string)
     """
     streamson = _Streamson(matcher.inner)
     for item in input_gen:
@@ -67,25 +68,7 @@ def extract_iter(
         res = streamson.pop()
         while res is not None:
             path, data = res
-            yield path, json_module.loads(data)
-            res = streamson.pop()
-
-
-def extract_iter_raw(
-    input_gen: typing.Generator[bytes, None, None], matcher: Matcher,
-) -> typing.Generator[typing.Tuple[str, bytes], None, None]:
-    """ Extracts raw bytes specified by given list of simple matches
-    :param: input_gen: - input generator
-    :param: matcher: used matcher
-
-    :yields: path and related bytes
-    """
-    streamson = _Streamson(matcher.inner)
-    for item in input_gen:
-        streamson.feed(item)
-        res = streamson.pop()
-        while res is not None:
-            yield res
+            yield path, json_module.loads(data) if parse else data
             res = streamson.pop()
 
 
