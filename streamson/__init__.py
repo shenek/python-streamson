@@ -1,12 +1,3 @@
-try:
-    import hyperjson
-
-    json_module = hyperjson
-except ImportError:
-    import json
-
-    json_module = json
-
 import typing
 
 from streamson.streamson import RustMatcher as _RustMatcher
@@ -53,14 +44,16 @@ class SimpleMatcher(Matcher):
 
 
 def extract_iter(
-    input_gen: typing.Generator[bytes, None, None], matcher: Matcher, parse: bool = True,
+    input_gen: typing.Generator[bytes, None, None],
+    matcher: Matcher,
+    convert: typing.Callable[[str], typing.Any] = lambda x: x,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
     """ Extracts json specified by given list of simple matches
     :param: input_gen: input generator
     :param: matcher: used matcher
-    :param: parse: if True data are parsed to json, otherwise it remains String
+    :param: convert: function used to convert raw data
 
-    :yields: path and (parsed json or string)
+    :yields: path and converted data
     """
     streamson = _Streamson(matcher.inner)
     for item in input_gen:
@@ -68,29 +61,33 @@ def extract_iter(
         res = streamson.pop()
         while res is not None:
             path, data = res
-            yield path, json_module.loads(data) if parse else data
+            yield path, convert(data)
             res = streamson.pop()
 
 
 def extract_fd(
-    input_fd: typing.IO[bytes], matcher: Matcher, buffer_size: int = 1024 * 1024,
-) -> typing.Generator[typing.Tuple[str, bytes], None, None]:
+    input_fd: typing.IO[bytes],
+    matcher: Matcher,
+    buffer_size: int = 1024 * 1024,
+    convert: typing.Callable[[str], typing.Any] = lambda x: x,
+) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
     """ Extracts json specified by given list of simple matches
     :param: input_fd: input fd
     :param: buffer_size: how many bytes can be read from a file at once
     :param: matcher: used matcher
+    :param: convert: function used to convert raw data
 
-    :yields: path and parsed json
+    :yields: path and converted data
     """
     streamson = _Streamson(matcher.inner)
-    data = input_fd.read(buffer_size)
+    input_data = input_fd.read(buffer_size)
 
-    while data:
-        streamson.feed(data)
+    while input_data:
+        streamson.feed(input_data)
         res = streamson.pop()
         while res is not None:
             path, data = res
-            yield path, json_module.loads(data)
+            yield path, convert(data)
             res = streamson.pop()
 
-        data = input_fd.read(buffer_size)
+        input_data = input_fd.read(buffer_size)

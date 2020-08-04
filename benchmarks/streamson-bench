@@ -29,7 +29,10 @@ def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typi
 
 
 def streamson_generic(
-    extract_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None, parse: bool = False,
+    extract_function: typing.Callable,
+    src_path: str,
+    dst_path: typing.Optional[str] = None,
+    convert: typing.Callable[[str], typing.Any] = lambda x: x,
 ) -> int:
     matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
 
@@ -41,7 +44,7 @@ def streamson_generic(
 
     with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
         with pathlib.Path(src_path).open("rb") as inputf:
-            for path, data in extract_function(reader(inputf), matcher, parse):
+            for path, data in extract_function(reader(inputf), matcher, convert):
                 count += 1
                 if outputf:
                     outputf.write(f"{data}\n")
@@ -62,8 +65,8 @@ def streamson_fd(src_path: str, dst_path: typing.Optional[str] = None):
     return count
 
 
-streamson = functools.partial(streamson_generic, extract_iter, parse=True)
-streamson_raw = functools.partial(streamson_generic, extract_iter, parse=False)
+streamson = functools.partial(streamson_generic, extract_iter, convert=json.loads)
+streamson_raw = functools.partial(streamson_generic, extract_iter, convert=lambda x: x)
 
 
 def std_generic(load_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
@@ -94,6 +97,7 @@ try:
     import hyperjson
 
     STRATEGIES["hyperjson"] = functools.partial(std_generic, hyperjson.load)
+    STRATEGIES["streamson-hyperjson"] = functools.partial(streamson_generic, extract_iter, convert=hyperjson.loads)
 except ImportError:
     pass
 

@@ -15,9 +15,10 @@ pip install streamson
 ### Select users
 ```python
 >>> import streamson
+>>> import json
 >>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
 >>> matcher = streamson.SimpleMatcher('{"users"}[]'])
->>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> extracted = streamson.extract_iter((e for e in data), matcher, json.loads)
 >>> for path, parsed in extracted:
 ...     path, parsed
 ...
@@ -29,9 +30,10 @@ pip install streamson
 ### Select users and groups
 ```python
 >>> import streamson
+>>> import json
 >>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
 >>> matcher = streamson.SimpleMatcher('{"users"}[]']) | streamson.SimpleMatcher('{"groups"}[]'])
->>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> extracted = streamson.extract_iter((e for e in data), matcher, json.loads)
 >>> for path, parsed in extracted:
 ...     path, parsed
 ...
@@ -45,9 +47,10 @@ pip install streamson
 ### Select only first level parts
 ```python
 >>> import streamson
+>>> import json
 >>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
 >>> matcher = streamson.DepthMatcher(1, 1)
->>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> extracted = streamson.extract_iter((e for e in data), matcher, json.loads)
 >>> for path, parsed in extracted:
 ...     path, parsed
 ...
@@ -59,9 +62,10 @@ pip install streamson
 ### Select second first level parts exclude first records
 ```python
 >>> import streamson
+>>> import json
 >>> data = [b'{"users": ["john","carl","bob"], "groups": ["admins", "staff"], "org": "university"}']
 >>> matcher = streamson.DepthMatcher(2, 2) & ~streamson.SimpleMatcher('{}[0]')
->>> extracted = streamson.extract_iter((e for e in data), matcher)
+>>> extracted = streamson.extract_iter((e for e in data), matcher, json.loads)
 >>> for path, parsed in extracted:
 ...     path, parsed
 ...
