@@ -1,18 +1,23 @@
-# Task
+## Task
 We have a huge json file in format:
 ```
 {
 	"users": [
-		{"name": "user1", "id"},
+		{"name": "user1", "id": ...},
 		...
 	],
 	"groups": [
-		{"name": "group1", ...}
+		{"name": "group1", "id": ...}
 		...
 	]
 }
 ```
 And we want to extract names of groups and users.
+
+## Machine
+Lenovo X230
+* 8G RAM
+* intel i5-3320M (2 cores, 4 threads)
 
 ## Libraries
 
@@ -50,8 +55,10 @@ Works in a stream mode using 1MB input buffer.
 |--------------------------|-----------------|-----------------|------------------|
 | stdlib                   | 47MB            | 196MB           | 383MB            |
 | hyperjson                | 73MB            | 312MB           | 614MB            |
-| streamson                | 17MB            | 18MB            | 19MB             |
-| streamson (+ hyperjson)  | 17MB            | 18MB            | 19MB             |
+| streamson                | 17MB            | 18MB            | 18MB             |
+| streamson-hyperjson      | 17MB            | 18MB            | 19MB             |
+| streamson-raw            | 17MB            | 18MB            | 19MB             |
+| streamson-fd             | 17MB            | 18MB            | 19MB             |
 | ijson-yajl2              | 39MB            | 39MB            | 39MB             |
 | ijson-yajl2_c            | 34MB            | 34MB            | 34MB             |
 | ijson-yajl2_cffi         | 39MB            | 40MB            | 41MB             |
@@ -62,8 +69,10 @@ Works in a stream mode using 1MB input buffer.
 |--------------------------|-----------------|-----------------|------------------|
 | stdlib                   | 0.06957s        |  0.31471s       |  0.62557s        |
 | hyperjson                | 0.10709s        |  0.49982s       |  0.98962s        |
-| streamson                | 0.51249s        |  2.50119s       |  5.08135s        |
-| streamson (+ hyperjson)  | 0.30412s        |  1.50597s       |  3.01986s        |
+| streamson                | 0.49143s        |  2.49520s       |  4.93188s        |
+| streamson-hyperjson      | 0.28882s        |  1.46728s       |  2.93033s        |
+| streamson-raw            | 0.22563s        |  1.10979s       |  2.16180s        |
+| streamson-fd             | 0.21691s        |  1.08577s       |  2.15290s        |
 | ijson-yajl2              | 1.73574s        |  8.84899s       | 17.28310s        |
 | ijson-yajl2_c            | 0.20588s        |  1.03259s       |  2.04052s        |
 | ijson-yajl2_cffi         | 1.63556s        |  8.06540s       | 15.89699s        |
