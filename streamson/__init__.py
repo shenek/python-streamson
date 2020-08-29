@@ -23,8 +23,12 @@ class Matcher:
 
 
 class DepthMatcher(Matcher):
-    def __init__(self, min_depth: int, max_depth: typing.Optional[int] = None):
-        """ Depth matcher which matches the depth in json.
+    def __init__(
+        self,
+        min_depth: int,
+        max_depth: typing.Optional[int] = None,
+    ):
+        """Depth matcher which matches the depth in json.
         :param: min_depth: minimal matched depth
         :param: max_depth: maximal matched depth (optinal if not set it will match all higher)
         """
@@ -33,7 +37,7 @@ class DepthMatcher(Matcher):
 
 class SimpleMatcher(Matcher):
     def __init__(self, path: str):
-        """ Simple matcher to use for json matching
+        """Simple matcher to use for json matching
         e.g.
         {"user"}[] will match {"user"}[0], {"user"}[1], ...
         {}[0] will match {"user"}[0], {"group"}[0]
@@ -48,7 +52,7 @@ def extract_iter(
     matcher: Matcher,
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
-    """ Extracts json specified by given list of simple matches
+    """Extracts json specified by given list of simple matches
     :param: input_gen: input generator
     :param: matcher: used matcher
     :param: convert: function used to convert raw data
@@ -71,7 +75,7 @@ def extract_fd(
     buffer_size: int = 1024 * 1024,
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
-    """ Extracts json specified by given list of simple matches
+    """Extracts json specified by given list of simple matches
     :param: input_fd: input fd
     :param: buffer_size: how many bytes can be read from a file at once
     :param: matcher: used matcher

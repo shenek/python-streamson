@@ -92,10 +92,11 @@ impl Streamson {
     /// # Arguments
     /// * `matches` - a list of valid simple matches (e.g. `{"users"}`, `[]{"name"}`, `[0]{}`)
     #[new]
-    pub fn new(matcher: &RustMatcher) -> PyResult<Self> {
-        let handler = Arc::new(Mutex::new(handler::Buffer::new()));
-        let collector =
-            Collector::new().add_matcher(Box::new(matcher.inner.clone()), &[handler.clone()]);
+    pub fn new(matcher: &RustMatcher, show_path: Option<bool>) -> PyResult<Self> {
+        let show_path = show_path.unwrap_or(true);
+        let handler = Arc::new(Mutex::new(handler::Buffer::new().set_show_path(show_path)));
+        let mut collector = Collector::new();
+        collector.add_matcher(Box::new(matcher.inner.clone()), &[handler.clone()]);
         Ok(Self { collector, handler })
     }
 
@@ -116,7 +117,7 @@ impl Streamson {
     /// # Returns
     /// * `None` - if no data present
     /// * `Some(<path>, <data_str>)` if there are some data
-    fn pop(&mut self) -> PyResult<Option<(String, String)>> {
+    fn pop(&mut self) -> PyResult<Option<(Option<String>, String)>> {
         match self.handler.lock().unwrap().pop() {
             Some((path, bytes)) => Ok(Some((path, String::from_utf8(bytes)?))),
             None => Ok(None),
