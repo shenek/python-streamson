@@ -9,7 +9,9 @@ DATA = [b'{"users": ["john", "carl", "bob"]}']
 
 
 @pytest.mark.parametrize(
-    "convert", [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)], ids=["raw", "json", "hyperjson"],
+    "convert",
+    [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)],
+    ids=["raw", "json", "hyperjson"],
 )
 def test_simple(convert):
     matcher = streamson.SimpleMatcher('{"users"}[]')
@@ -23,7 +25,9 @@ def test_simple(convert):
 
 
 @pytest.mark.parametrize(
-    "convert", [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)], ids=["raw", "json", "hyperjson"],
+    "convert",
+    [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)],
+    ids=["raw", "json", "hyperjson"],
 )
 def test_depth(convert):
     matcher = streamson.DepthMatcher(1)
@@ -45,7 +49,9 @@ def test_depth(convert):
 
 
 @pytest.mark.parametrize(
-    "convert", [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)], ids=["raw", "json", "hyperjson"],
+    "convert",
+    [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)],
+    ids=["raw", "json", "hyperjson"],
 )
 def test_invert(convert):
     matcher = ~streamson.DepthMatcher(2)
@@ -55,7 +61,9 @@ def test_invert(convert):
 
 
 @pytest.mark.parametrize(
-    "convert", [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)], ids=["raw", "json", "hyperjson"],
+    "convert",
+    [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)],
+    ids=["raw", "json", "hyperjson"],
 )
 def test_all(convert):
     matcher = streamson.SimpleMatcher('{"users"}[]') & streamson.SimpleMatcher("{}[1]")
@@ -68,7 +76,9 @@ def test_all(convert):
 
 
 @pytest.mark.parametrize(
-    "convert", [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)], ids=["raw", "json", "hyperjson"],
+    "convert",
+    [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)],
+    ids=["raw", "json", "hyperjson"],
 )
 def test_any(convert):
     matcher = streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')
@@ -84,7 +94,9 @@ def test_any(convert):
 
 
 @pytest.mark.parametrize(
-    "convert", [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)], ids=["raw", "json", "hyperjson"],
+    "convert",
+    [lambda x: x, lambda x: json.dumps(x), lambda x: hyperjson.dumps(x)],
+    ids=["raw", "json", "hyperjson"],
 )
 def test_complex(convert):
     matcher = (streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')) & ~streamson.SimpleMatcher(

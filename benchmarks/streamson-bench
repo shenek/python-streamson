@@ -140,7 +140,9 @@ def memory(strategy: str, input_path: str):
 
     def call(limit) -> int:
         retval = subprocess.call(
-            args + ["--memory-limit", str(limit)], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            args + ["--memory-limit", str(limit)],
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
         )
         print(f"{limit}MB - {retval == 0}", file=sys.stderr)
         return retval
@@ -218,11 +220,18 @@ if __name__ == "__main__":
     mem_parser.add_argument("-i", "--input-file", help="input json file", required=True)
     mem_parser.add_argument("-s", "--strategy", help="parse strategy", choices=STRATEGIES.keys(), required=True)
 
-    time_parser = subparsers.add_parser("time", help="performs several measurements and calculates the average",)
+    time_parser = subparsers.add_parser(
+        "time",
+        help="performs several measurements and calculates the average",
+    )
     time_parser.add_argument("-i", "--input-file", help="input json file", required=True)
     time_parser.add_argument("-s", "--strategy", help="parse strategy", choices=STRATEGIES.keys(), required=True)
     time_parser.add_argument(
-        "-a", "--attempts", help="number of attempts (default=10)", type=int, default=10,
+        "-a",
+        "--attempts",
+        help="number of attempts (default=10)",
+        type=int,
+        default=10,
     )
 
     bench_parser = subparsers.add_parser("_bench", help="performs a signle benchmark (outputs consumed time)")
@@ -231,7 +240,11 @@ if __name__ == "__main__":
     bench_parser.add_argument("-o", "--output-file", help="output csv file", default=None)
     bench_parser.add_argument("-l", "--memory-limit", help="memory limit (in MB)", default=0, type=int)
     bench_parser.add_argument(
-        "-c", "--check-total", help="check total group and user count", default=None, type=int,
+        "-c",
+        "--check-total",
+        help="check total group and user count",
+        default=None,
+        type=int,
     )
 
     options = parser.parse_args()
@@ -241,7 +254,11 @@ if __name__ == "__main__":
         "memory": lambda: memory(options.strategy, options.input_file),
         "time": lambda: times(options.strategy, options.input_file, options.attempts),
         "_bench": lambda: bench(
-            options.strategy, options.input_file, options.output_file, options.memory_limit, options.check_total,
+            options.strategy,
+            options.input_file,
+            options.output_file,
+            options.memory_limit,
+            options.check_total,
         ),
     }
 
