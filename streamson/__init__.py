@@ -51,15 +51,17 @@ def extract_iter(
     input_gen: typing.Generator[bytes, None, None],
     matcher: Matcher,
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
+    require_path: bool = True,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
     """Extracts json specified by given list of simple matches
     :param: input_gen: input generator
     :param: matcher: used matcher
     :param: convert: function used to convert raw data
+    :param: require_path: is path required in output stream
 
     :yields: path and converted data
     """
-    streamson = _Streamson(matcher.inner)
+    streamson = _Streamson(matcher.inner, require_path)
     for item in input_gen:
         streamson.feed(item)
         res = streamson.pop()
@@ -74,16 +76,18 @@ def extract_fd(
     matcher: Matcher,
     buffer_size: int = 1024 * 1024,
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
+    require_path: bool = True,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
     """Extracts json specified by given list of simple matches
     :param: input_fd: input fd
     :param: buffer_size: how many bytes can be read from a file at once
     :param: matcher: used matcher
     :param: convert: function used to convert raw data
+    :param: require_path: is path required in output stream
 
     :yields: path and converted data
     """
-    streamson = _Streamson(matcher.inner)
+    streamson = _Streamson(matcher.inner, require_path)
     input_data = input_fd.read(buffer_size)
 
     while input_data:

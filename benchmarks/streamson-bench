@@ -44,7 +44,7 @@ def streamson_generic(
 
     with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
         with pathlib.Path(src_path).open("rb") as inputf:
-            for path, data in extract_function(reader(inputf), matcher, convert):
+            for path, data in extract_function(reader(inputf), matcher, convert, require_path=False):
                 count += 1
                 if outputf:
                     outputf.write(f"{data}\n")
@@ -58,7 +58,7 @@ def streamson_fd(src_path: str, dst_path: typing.Optional[str] = None):
     count = 0
     with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
         with pathlib.Path(src_path).open("rb") as inputf:
-            for path, data in extract_fd(inputf, matcher, buffer_size=BUFF_SIZE):
+            for path, data in extract_fd(inputf, matcher, buffer_size=BUFF_SIZE, require_path=False):
                 count += 1
                 if outputf:
                     outputf.write(f"{data!r}\n")
