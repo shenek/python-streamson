@@ -1,7 +1,7 @@
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
 
 use std::sync::{Arc, Mutex};
-use streamson_lib::{error, handler, matcher, Collector};
+use streamson_lib::{error, handler, matcher, strategy};
 
 create_exception!(streamson, StreamsonError, exceptions::ValueError);
 create_exception!(streamson, MatcherUsed, exceptions::RuntimeError);
@@ -81,7 +81,7 @@ impl PyNumberProtocol for RustMatcher {
 /// Low level Python wrapper for Simple matcher and Buffer handler
 #[pyclass]
 pub struct Streamson {
-    collector: Collector,
+    collector: strategy::Trigger,
     handler: Arc<Mutex<handler::Buffer>>,
 }
 
@@ -91,11 +91,12 @@ impl Streamson {
     ///
     /// # Arguments
     /// * `matches` - a list of valid simple matches (e.g. `{"users"}`, `[]{"name"}`, `[0]{}`)
+    /// * `use_path` - indicator whether path is required in further processing
     #[new]
-    pub fn new(matcher: &RustMatcher, show_path: Option<bool>) -> PyResult<Self> {
-        let show_path = show_path.unwrap_or(true);
-        let handler = Arc::new(Mutex::new(handler::Buffer::new().set_show_path(show_path)));
-        let mut collector = Collector::new();
+    pub fn new(matcher: &RustMatcher, use_path: Option<bool>) -> PyResult<Self> {
+        let use_path = use_path.unwrap_or(true);
+        let handler = Arc::new(Mutex::new(handler::Buffer::new().set_use_path(use_path)));
+        let mut collector = strategy::Trigger::new();
         collector.add_matcher(Box::new(matcher.inner.clone()), &[handler.clone()]);
         Ok(Self { collector, handler })
     }

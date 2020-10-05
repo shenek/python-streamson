@@ -32,4 +32,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "~0.11.1", features = ["extension-module"] }
-streamson-lib = "~4.1.0"
+streamson-lib = "~5.0.0"
