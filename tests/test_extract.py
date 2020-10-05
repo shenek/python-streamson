@@ -1,5 +1,6 @@
 import io
 import json
+import typing
 from enum import Enum, auto
 
 import hyperjson
@@ -7,7 +8,10 @@ import pytest
 
 import streamson
 
-DATA = [b'{"users": ["john", "carl", "bob"]}']
+DATA_JSON = {
+    "users": ["john", "carl", "bob"],
+    "groups": ["admins", "users"],
+}
 
 
 class Kind(Enum):
@@ -16,8 +20,13 @@ class Kind(Enum):
 
 
 @pytest.fixture
+def data() -> typing.List[bytes]:
+    return [json.dumps(DATA_JSON).encode()]
+
+
+@pytest.fixture
 def io_reader() -> io.BytesIO:
-    return io.BytesIO(b'{"users": ["john", "carl", "bob"]}')
+    return io.BytesIO(json.dumps(DATA_JSON).encode())
 
 
 @pytest.mark.parametrize(
@@ -51,10 +60,10 @@ def io_reader() -> io.BytesIO:
         "iter-hyperjson-nopath",
     ],
 )
-def test_simple(io_reader, kind, convert, extract_path):
+def test_simple(io_reader, data, kind, convert, extract_path):
     matcher = streamson.SimpleMatcher('{"users"}[]')
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
     assert next(extracted) == ('{"users"}[0]' if extract_path else None, convert('"john"'))
@@ -96,35 +105,32 @@ def test_simple(io_reader, kind, convert, extract_path):
         "iter-hyperjson-nopath",
     ],
 )
-def test_depth(io_reader, kind, convert, extract_path):
+def test_depth(io_reader, data, kind, convert, extract_path):
     matcher = streamson.DepthMatcher(1)
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
-    assert next(extracted) == ('{"users"}[0]' if extract_path else None, convert('"john"'))
-    assert next(extracted) == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
-    assert next(extracted) == ('{"users"}[2]' if extract_path else None, convert('"bob"'))
     assert next(extracted) == (
         '{"users"}' if extract_path else None,
         convert('["john", "carl", "bob"]'),
     )
+    assert next(extracted) == (
+        '{"groups"}' if extract_path else None,
+        convert('["admins", "users"]'),
+    )
     with pytest.raises(StopIteration):
         next(extracted)
 
-    matcher = streamson.DepthMatcher(0, 1)
+    matcher = streamson.DepthMatcher(0)
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         io_reader.seek(0)
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
     assert next(extracted) == (
-        '{"users"}' if extract_path else None,
-        convert('["john", "carl", "bob"]'),
-    )
-    assert next(extracted) == (
         "" if extract_path else None,
-        convert('{"users": ["john", "carl", "bob"]}'),
+        convert('{"users": ["john", "carl", "bob"], "groups": ["admins", "users"]}'),
     )
 
     with pytest.raises(StopIteration):
@@ -162,19 +168,15 @@ def test_depth(io_reader, kind, convert, extract_path):
         "iter-hyperjson-nopath",
     ],
 )
-def test_invert(io_reader, kind, convert, extract_path):
+def test_invert(io_reader, data, kind, convert, extract_path):
     matcher = ~streamson.DepthMatcher(2)
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
     assert next(extracted) == (
-        '{"users"}' if extract_path else None,
-        convert('["john", "carl", "bob"]'),
-    )
-    assert next(extracted) == (
         "" if extract_path else None,
-        convert('{"users": ["john", "carl", "bob"]}'),
+        convert('{"users": ["john", "carl", "bob"], "groups": ["admins", "users"]}'),
     )
 
 
@@ -209,11 +211,11 @@ def test_invert(io_reader, kind, convert, extract_path):
         "iter-hyperjson-nopath",
     ],
 )
-def test_all(io_reader, kind, convert, extract_path):
+def test_all(io_reader, data, kind, convert, extract_path):
     matcher = streamson.SimpleMatcher('{"users"}[]') & streamson.SimpleMatcher("{}[1]")
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
     assert next(extracted) == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
@@ -253,19 +255,24 @@ def test_all(io_reader, kind, convert, extract_path):
         "iter-hyperjson-nopath",
     ],
 )
-def test_any(io_reader, kind, convert, extract_path):
+def test_any(io_reader, data, kind, convert, extract_path):
     matcher = streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
-    assert next(extracted) == ('{"users"}[0]' if extract_path else None, convert('"john"'))
-    assert next(extracted) == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
-    assert next(extracted) == ('{"users"}[2]' if extract_path else None, convert('"bob"'))
     assert next(extracted) == (
         '{"users"}' if extract_path else None,
         convert('["john", "carl", "bob"]'),
+    )
+    assert next(extracted) == (
+        '{"groups"}[0]' if extract_path else None,
+        convert('"admins"'),
+    )
+    assert next(extracted) == (
+        '{"groups"}[1]' if extract_path else None,
+        convert('"users"'),
     )
 
     with pytest.raises(StopIteration):
@@ -303,20 +310,22 @@ def test_any(io_reader, kind, convert, extract_path):
         "iter-hyperjson-nopath",
     ],
 )
-def test_complex(io_reader, kind, convert, extract_path):
+def test_complex(io_reader, data, kind, convert, extract_path):
     matcher = (streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')) & ~streamson.SimpleMatcher(
-        '{"users"}[0]'
+        '{"groups"}[0]'
     )
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in DATA), matcher, convert, extract_path)
+        extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
         extracted = streamson.extract_fd(io_reader, matcher, 5, convert, extract_path)
-    assert next(extracted) == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
-    assert next(extracted) == ('{"users"}[2]' if extract_path else None, convert('"bob"'))
     assert next(extracted) == (
         '{"users"}' if extract_path else None,
         convert('["john", "carl", "bob"]'),
+    )
+    assert next(extracted) == (
+        '{"groups"}[1]' if extract_path else None,
+        convert('"users"'),
     )
 
     with pytest.raises(StopIteration):

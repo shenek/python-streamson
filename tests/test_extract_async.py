@@ -81,13 +81,9 @@ async def test_depth(convert, extract_path):
     async for rec in async_out:
         res.append(rec)
 
-    assert len(res) == 4
+    assert len(res) == 1
 
-    assert res[0] == ('{"users"}[0]' if extract_path else None, convert('"john"'))
-    assert res[1] == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
-    assert res[2] == ('{"users"}[2]' if extract_path else None, convert('"bob"'))
-
-    assert res[3] == (
+    assert res[0] == (
         '{"users"}' if extract_path else None,
         convert('["john", "carl", "bob"]'),
     )
@@ -99,12 +95,8 @@ async def test_depth(convert, extract_path):
     async for rec in async_out:
         res.append(rec)
 
-    assert len(res) == 2
+    assert len(res) == 1
     assert res[0] == (
-        '{"users"}' if extract_path else None,
-        convert('["john", "carl", "bob"]'),
-    )
-    assert res[1] == (
         "" if extract_path else None,
         convert('{"users": ["john", "carl", "bob"]}'),
     )
@@ -138,13 +130,9 @@ async def test_invert(convert, extract_path):
     async for rec in async_out:
         res.append(rec)
 
-    assert len(res) == 2
+    assert len(res) == 1
 
     assert res[0] == (
-        '{"users"}' if extract_path else None,
-        convert('["john", "carl", "bob"]'),
-    )
-    assert res[1] == (
         "" if extract_path else None,
         convert('{"users": ["john", "carl", "bob"]}'),
     )
@@ -213,11 +201,8 @@ async def test_any(convert, extract_path):
     async for rec in async_out:
         res.append(rec)
 
-    assert len(res) == 4
-    assert res[0] == ('{"users"}[0]' if extract_path else None, convert('"john"'))
-    assert res[1] == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
-    assert res[2] == ('{"users"}[2]' if extract_path else None, convert('"bob"'))
-    assert res[3] == (
+    assert len(res) == 1
+    assert res[0] == (
         '{"users"}' if extract_path else None,
         convert('["john", "carl", "bob"]'),
     )
@@ -254,11 +239,9 @@ async def test_complex(convert, extract_path):
     async for rec in async_out:
         res.append(rec)
 
-    assert len(res) == 3
+    assert len(res) == 1
 
-    assert res[0] == ('{"users"}[1]' if extract_path else None, convert('"carl"'))
-    assert res[1] == ('{"users"}[2]' if extract_path else None, convert('"bob"'))
-    assert res[2] == (
+    assert res[0] == (
         '{"users"}' if extract_path else None,
         convert('["john", "carl", "bob"]'),
     )

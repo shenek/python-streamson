@@ -1,7 +1,6 @@
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
 
-use std::sync::{Arc, Mutex};
-use streamson_lib::{error, handler, matcher, strategy};
+use streamson_lib::{error, matcher, strategy};
 
 create_exception!(streamson, StreamsonError, exceptions::ValueError);
 create_exception!(streamson, MatcherUsed, exceptions::RuntimeError);
@@ -81,8 +80,7 @@ impl PyNumberProtocol for RustMatcher {
 /// Low level Python wrapper for Simple matcher and Buffer handler
 #[pyclass]
 pub struct Streamson {
-    collector: strategy::Trigger,
-    handler: Arc<Mutex<handler::Buffer>>,
+    extract: strategy::Extract,
 }
 
 #[pymethods]
@@ -91,37 +89,32 @@ impl Streamson {
     ///
     /// # Arguments
     /// * `matches` - a list of valid simple matches (e.g. `{"users"}`, `[]{"name"}`, `[0]{}`)
-    /// * `use_path` - indicator whether path is required in further processing
+    /// * `export_path` - indicator whether path is required in further processing
     #[new]
-    pub fn new(matcher: &RustMatcher, use_path: Option<bool>) -> PyResult<Self> {
-        let use_path = use_path.unwrap_or(true);
-        let handler = Arc::new(Mutex::new(handler::Buffer::new().set_use_path(use_path)));
-        let mut collector = strategy::Trigger::new();
-        collector.add_matcher(Box::new(matcher.inner.clone()), &[handler.clone()]);
-        Ok(Self { collector, handler })
+    pub fn new(matcher: &RustMatcher, export_path: Option<bool>) -> PyResult<Self> {
+        let export_path = export_path.unwrap_or(true);
+        let mut extract = strategy::Extract::new().set_export_path(export_path);
+        extract.add_matcher(Box::new(matcher.inner.clone()));
+        Ok(Self { extract })
     }
 
     /// Feeds Streamson processor with data
     ///
     /// # Arguments
     /// * `data` - input data to be processed
-    pub fn feed(&mut self, data: &[u8]) -> PyResult<()> {
-        if let Err(err) = self.collector.process(data) {
-            Err(StreamsonError::from(err).into())
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Reads data from Buffer handler
     ///
     /// # Returns
-    /// * `None` - if no data present
-    /// * `Some(<path>, <data_str>)` if there are some data
-    fn pop(&mut self) -> PyResult<Option<(Option<String>, String)>> {
-        match self.handler.lock().unwrap().pop() {
-            Some((path, bytes)) => Ok(Some((path, String::from_utf8(bytes)?))),
-            None => Ok(None),
+    /// * `vector of tuples` - (path_or_none, data)
+    pub fn process(&mut self, data: &[u8]) -> PyResult<Vec<(Option<String>, String)>> {
+        match self.extract.process(data) {
+            Err(err) => Err(StreamsonError::from(err).into()),
+            Ok(chunks) => {
+                let mut res = vec![];
+                for (path, data) in chunks {
+                    res.push((path, String::from_utf8(data)?));
+                }
+                Ok(res)
+            }
         }
     }
 }

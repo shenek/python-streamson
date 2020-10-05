@@ -63,12 +63,8 @@ def extract_iter(
     """
     streamson = _Streamson(matcher.inner, require_path)
     for item in input_gen:
-        streamson.feed(item)
-        res = streamson.pop()
-        while res is not None:
-            path, data = res
+        for path, data in streamson.process(item):
             yield path, convert(data)
-            res = streamson.pop()
 
 
 def extract_fd(
@@ -91,13 +87,8 @@ def extract_fd(
     input_data = input_fd.read(buffer_size)
 
     while input_data:
-        streamson.feed(input_data)
-        res = streamson.pop()
-        while res is not None:
-            path, data = res
+        for path, data in streamson.process(input_data):
             yield path, convert(data)
-            res = streamson.pop()
-
         input_data = input_fd.read(buffer_size)
 
 
@@ -117,10 +108,5 @@ async def extract_async(
     """
     streamson = _Streamson(matcher.inner, require_path)
     async for input_data in input_gen:
-        streamson.feed(input_data)
-
-        res = streamson.pop()
-        while res is not None:
-            path, data = res
+        for path, data in streamson.process(input_data):
             yield path, convert(data)
-            res = streamson.pop()
