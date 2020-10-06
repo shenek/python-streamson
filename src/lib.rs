@@ -1,6 +1,9 @@
+pub mod extract;
+pub use extract::Extract;
+
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
 
-use streamson_lib::{error, matcher, strategy};
+use streamson_lib::{error, matcher};
 
 create_exception!(streamson, StreamsonError, exceptions::ValueError);
 create_exception!(streamson, MatcherUsed, exceptions::RuntimeError);
@@ -77,52 +80,10 @@ impl PyNumberProtocol for RustMatcher {
     }
 }
 
-/// Low level Python wrapper for Simple matcher and Buffer handler
-#[pyclass]
-pub struct Streamson {
-    extract: strategy::Extract,
-}
-
-#[pymethods]
-impl Streamson {
-    /// Create a new instance of Streamson
-    ///
-    /// # Arguments
-    /// * `matches` - a list of valid simple matches (e.g. `{"users"}`, `[]{"name"}`, `[0]{}`)
-    /// * `export_path` - indicator whether path is required in further processing
-    #[new]
-    pub fn new(matcher: &RustMatcher, export_path: Option<bool>) -> PyResult<Self> {
-        let export_path = export_path.unwrap_or(true);
-        let mut extract = strategy::Extract::new().set_export_path(export_path);
-        extract.add_matcher(Box::new(matcher.inner.clone()));
-        Ok(Self { extract })
-    }
-
-    /// Feeds Streamson processor with data
-    ///
-    /// # Arguments
-    /// * `data` - input data to be processed
-    ///
-    /// # Returns
-    /// * `vector of tuples` - (path_or_none, data)
-    pub fn process(&mut self, data: &[u8]) -> PyResult<Vec<(Option<String>, String)>> {
-        match self.extract.process(data) {
-            Err(err) => Err(StreamsonError::from(err).into()),
-            Ok(chunks) => {
-                let mut res = vec![];
-                for (path, data) in chunks {
-                    res.push((path, String::from_utf8(data)?));
-                }
-                Ok(res)
-            }
-        }
-    }
-}
-
 /// This module is a python module implemented in Rust.
 #[pymodule]
 fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Streamson>()?;
+    m.add_class::<Extract>()?;
     m.add_class::<RustMatcher>()?;
 
     Ok(())
