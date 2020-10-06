@@ -6,16 +6,6 @@ import pytest
 import streamson
 
 
-def make_async_gen():
-    async def async_in():
-
-        yield b'{"users": '
-        yield b'["john", "carl", "bob"'
-        yield b"]}"
-
-    return async_in
-
-
 @pytest.mark.parametrize(
     "convert,extract_path",
     [
@@ -36,7 +26,7 @@ def make_async_gen():
     ],
 )
 @pytest.mark.asyncio
-async def test_simple(convert, extract_path):
+async def test_simple(make_async_gen, convert, extract_path):
     matcher = streamson.SimpleMatcher('{"users"}[]')
     async_out = streamson.extract_async(make_async_gen()(), matcher, convert, extract_path)
 
@@ -72,7 +62,7 @@ async def test_simple(convert, extract_path):
     ],
 )
 @pytest.mark.asyncio
-async def test_depth(convert, extract_path):
+async def test_depth(make_async_gen, convert, extract_path):
     matcher = streamson.DepthMatcher(1)
 
     async_out = streamson.extract_async(make_async_gen()(), matcher, convert, extract_path)
@@ -122,7 +112,7 @@ async def test_depth(convert, extract_path):
     ],
 )
 @pytest.mark.asyncio
-async def test_invert(convert, extract_path):
+async def test_invert(make_async_gen, convert, extract_path):
     matcher = ~streamson.DepthMatcher(2)
     async_out = streamson.extract_async(make_async_gen()(), matcher, convert, extract_path)
 
@@ -158,7 +148,7 @@ async def test_invert(convert, extract_path):
     ],
 )
 @pytest.mark.asyncio
-async def test_all(convert, extract_path):
+async def test_all(make_async_gen, convert, extract_path):
     matcher = streamson.SimpleMatcher('{"users"}[]') & streamson.SimpleMatcher("{}[1]")
 
     async_out = streamson.extract_async(make_async_gen()(), matcher, convert, extract_path)
@@ -192,7 +182,7 @@ async def test_all(convert, extract_path):
     ],
 )
 @pytest.mark.asyncio
-async def test_any(convert, extract_path):
+async def test_any(make_async_gen, convert, extract_path):
     matcher = streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')
 
     async_out = streamson.extract_async(make_async_gen()(), matcher, convert, extract_path)
@@ -228,7 +218,7 @@ async def test_any(convert, extract_path):
     ],
 )
 @pytest.mark.asyncio
-async def test_complex(convert, extract_path):
+async def test_complex(make_async_gen, convert, extract_path):
     matcher = (streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')) & ~streamson.SimpleMatcher(
         '{"users"}[0]'
     )

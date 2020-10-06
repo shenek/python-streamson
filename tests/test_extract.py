@@ -1,6 +1,4 @@
-import io
 import json
-import typing
 from enum import Enum, auto
 
 import hyperjson
@@ -8,25 +6,10 @@ import pytest
 
 import streamson
 
-DATA_JSON = {
-    "users": ["john", "carl", "bob"],
-    "groups": ["admins", "users"],
-}
-
 
 class Kind(Enum):
     FD = auto()
     ITER = auto()
-
-
-@pytest.fixture
-def data() -> typing.List[bytes]:
-    return [json.dumps(DATA_JSON).encode()]
-
-
-@pytest.fixture
-def io_reader() -> io.BytesIO:
-    return io.BytesIO(json.dumps(DATA_JSON).encode())
 
 
 @pytest.mark.parametrize(

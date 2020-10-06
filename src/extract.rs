@@ -2,7 +2,7 @@ use super::{RustMatcher, StreamsonError};
 use pyo3::prelude::*;
 use streamson_lib::strategy;
 
-/// Low level Python wrapper for Simple matcher and Buffer handler
+/// Low level Python wrapper for Extract strategy
 #[pyclass]
 pub struct Extract {
     extract: strategy::Extract,
@@ -10,20 +10,26 @@ pub struct Extract {
 
 #[pymethods]
 impl Extract {
-    /// Create a new instance of Streamson
+    /// Create a new instance of Extract
     ///
     /// # Arguments
-    /// * `matches` - a list of valid simple matches (e.g. `{"users"}`, `[]{"name"}`, `[0]{}`)
     /// * `export_path` - indicator whether path is required in further processing
     #[new]
-    pub fn new(matcher: &RustMatcher, export_path: Option<bool>) -> PyResult<Self> {
+    pub fn new(export_path: Option<bool>) -> PyResult<Self> {
         let export_path = export_path.unwrap_or(true);
-        let mut extract = strategy::Extract::new().set_export_path(export_path);
-        extract.add_matcher(Box::new(matcher.inner.clone()));
+        let extract = strategy::Extract::new().set_export_path(export_path);
         Ok(Self { extract })
     }
 
-    /// Feeds Streamson processor with data
+    /// Adds matcher for Extract
+    ///
+    /// # Arguments
+    /// * `matcher` - matcher to be added (`Simple` or `Depth`)
+    pub fn add_matcher(&mut self, matcher: &RustMatcher) {
+        self.extract.add_matcher(Box::new(matcher.inner.clone()));
+    }
+
+    /// Process data for Extract strategy
     ///
     /// # Arguments
     /// * `data` - input data to be processed

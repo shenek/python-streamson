@@ -11,7 +11,7 @@ def extract_iter(
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
     require_path: bool = True,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
-    """Extracts json from generator specified by given simple matcher
+    """Extracts json from generator specified by given matcher
     :param: input_gen: input generator
     :param: matcher: used matcher
     :param: convert: function used to convert raw data
@@ -19,7 +19,8 @@ def extract_iter(
 
     :yields: path and converted data
     """
-    extract = Extract(matcher.inner, require_path)
+    extract = Extract(require_path)
+    extract.add_matcher(matcher.inner)
     for item in input_gen:
         for path, data in extract.process(item):
             yield path, convert(data)
@@ -32,7 +33,7 @@ def extract_fd(
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
     require_path: bool = True,
 ) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
-    """Extracts json from input file specified by given simple matcher
+    """Extracts json from input file specified by given matcher
     :param: input_fd: input fd
     :param: buffer_size: how many bytes can be read from a file at once
     :param: matcher: used matcher
@@ -41,7 +42,9 @@ def extract_fd(
 
     :yields: path and converted data
     """
-    extract = Extract(matcher.inner, require_path)
+    extract = Extract(require_path)
+    extract.add_matcher(matcher.inner)
+
     input_data = input_fd.read(buffer_size)
 
     while input_data:
@@ -56,7 +59,7 @@ async def extract_async(
     convert: typing.Callable[[str], typing.Any] = lambda x: x,
     require_path: bool = True,
 ):
-    """Extracts json from given async generator specified by given simple matcher
+    """Extracts json from given async generator specified by given matcher
     :param: input_gen: input generator
     :param: matcher: used matcher
     :param: convert: function used to convert raw data
@@ -64,7 +67,9 @@ async def extract_async(
 
     :yields: path and converted data
     """
-    extract = Extract(matcher.inner, require_path)
+    extract = Extract(require_path)
+    extract.add_matcher(matcher.inner)
+
     async for input_data in input_gen:
         for path, data in extract.process(input_data):
             yield path, convert(data)
