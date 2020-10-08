@@ -1,7 +1,9 @@
 pub mod extract;
+pub mod filter;
 pub mod trigger;
 
 pub use extract::Extract;
+pub use filter::Filter;
 pub use trigger::{PythonHandler, Trigger};
 
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
@@ -87,6 +89,7 @@ impl PyNumberProtocol for RustMatcher {
 #[pymodule]
 fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Extract>()?;
+    m.add_class::<Filter>()?;
     m.add_class::<RustMatcher>()?;
     m.add_class::<Trigger>()?;
     m.add_class::<PythonHandler>()?;
