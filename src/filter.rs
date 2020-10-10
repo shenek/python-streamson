@@ -31,7 +31,7 @@ impl Filter {
     /// * `data` - input data to be processed
     ///
     /// # Returns
-    /// * `vector of tuples` - (path_or_none, data)
+    /// * `filtered output`
     pub fn process(&mut self, data: &[u8]) -> PyResult<String> {
         match self.filter.process(data) {
             Err(err) => Err(StreamsonError::from(err).into()),

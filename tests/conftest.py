@@ -36,9 +36,17 @@ def io_reader() -> io.BytesIO:
 
 @pytest.fixture(scope="function")
 def handler():
-    output: typing.List[typing.Tuple[typing.Optional[str], int, bytes]] = []
+    output: typing.List[typing.Tuple[typing.Optional[str], int, typing.Optional[bytes]]] = []
 
     def store_to_output(path: typing.Optional[str], matcher_idx: int, data: bytes):
         output.append((path, matcher_idx, data))
 
     return store_to_output, output
+
+
+@pytest.fixture(scope="function")
+def converter():
+    def convert_to_stars(path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]):
+        return br'"***"'
+
+    return convert_to_stars

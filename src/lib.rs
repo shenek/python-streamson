@@ -1,7 +1,9 @@
+pub mod convert;
 pub mod extract;
 pub mod filter;
 pub mod trigger;
 
+pub use convert::{Convert, PythonConverter};
 pub use extract::Extract;
 pub use filter::Filter;
 pub use trigger::{PythonHandler, Trigger};
@@ -88,6 +90,8 @@ impl PyNumberProtocol for RustMatcher {
 /// This module is a python module implemented in Rust.
 #[pymodule]
 fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<Convert>()?;
+    m.add_class::<PythonConverter>()?;
     m.add_class::<Extract>()?;
     m.add_class::<Filter>()?;
     m.add_class::<RustMatcher>()?;

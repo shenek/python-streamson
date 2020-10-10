@@ -39,7 +39,7 @@ impl handler::Handler for PythonHandler {
         path: &Path,
         matcher_idx: usize,
         data: Option<&[u8]>,
-    ) -> Result<(), error::Handler> {
+    ) -> Result<Option<Vec<u8>>, error::Handler> {
         let gil = Python::acquire_gil();
         self.callable
             .call1(
@@ -55,7 +55,7 @@ impl handler::Handler for PythonHandler {
                 ),
             )
             .map_err(|_| error::Handler::new("Calling python failed"))?;
-        Ok(())
+        Ok(None)
     }
 }
 
