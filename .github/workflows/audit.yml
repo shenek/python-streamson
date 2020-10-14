@@ -24,27 +24,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
       - name: Install poetry
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
 
-      - name: Install virtualenv
-        run: |
-          sudo apt-get update
-          sudo apt-get install python3-venv
-
       - name: Install dependencies
         run: |
-          python3 -m venv /tmp/venv
-          source /tmp/venv/bin/activate
           env PATH="${PATH}:${HOME}/.poetry/bin" poetry install
 
       - name: Run bandit
         run: |
-          source /tmp/venv/bin/activate
           env PATH="${PATH}:${HOME}/.poetry/bin" poetry run bandit -r streamson/
 
       - name: Run safety
         run: |
-          source /tmp/venv/bin/activate
           env PATH="${PATH}:${HOME}/.poetry/bin" poetry run safety check
