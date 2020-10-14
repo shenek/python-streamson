@@ -40,11 +40,10 @@ jobs:
           env RUSTFLAGS="-D unused_crate_dependencies" PATH="${PATH}:${HOME}/.poetry/bin" poetry run pre-commit run --hook-stage push --all-files
 
   tests-python:
-    name: Python ${{ matrix.python-version }} ${{ matrix.os }} tests
+    name: Run ${{ matrix.os }} tests
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.6', '3.7', '3.8']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -54,22 +53,20 @@ jobs:
           profile: minimal
           toolchain: nightly
           override: true
+
       - name: Setup python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.8.x"
+
       - name: Install poetry
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
 
-      - name: Install dependencies
+      - name: Install streamson
         run: |
           env PATH="${PATH}:${HOME}/.poetry/bin" poetry install
 
-      - name: Build the project
-        run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run maturin develop
-
       - name: Run tests
         run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run pytest tests/
+          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run tox
