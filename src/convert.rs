@@ -1,56 +1,7 @@
-use super::{RustMatcher, StreamsonError};
-use pyo3::{prelude::*, types::PyBytes};
+use super::{PythonConverter, RustMatcher, StreamsonError};
+use pyo3::prelude::*;
 use std::sync::{Arc, Mutex};
-use streamson_lib::{error, handler, path::Path, strategy};
-
-/// TODO
-#[pyclass]
-#[derive(Clone)]
-pub struct PythonConverter {
-    callable: PyObject,
-    use_path: bool,
-}
-
-#[pymethods]
-impl PythonConverter {
-    /// Create instance of PythonConverter
-    ///
-    /// # Arguments
-    /// * `callable` - python callable (3 arguments)
-    #[new]
-    pub fn new(callable: PyObject, use_path: bool) -> Self {
-        Self { callable, use_path }
-    }
-}
-
-impl handler::Handler for PythonConverter {
-    fn handle(
-        &mut self,
-        path: &Path,
-        matcher_idx: usize,
-        data: Option<&[u8]>,
-    ) -> Result<Option<Vec<u8>>, error::Handler> {
-        let gil = Python::acquire_gil();
-        let res = self
-            .callable
-            .call1(
-                gil.python(),
-                (
-                    if self.use_path {
-                        Some(path.to_string())
-                    } else {
-                        None
-                    },
-                    matcher_idx,
-                    data.unwrap().to_vec(),
-                ),
-            )
-            .map_err(|_| error::Handler::new("Failed to call handler function"))?;
-        let bytes = res.cast_as::<PyBytes>(gil.python()).unwrap();
-        Ok(FromPyObject::extract(bytes)
-            .map_err(|_| error::Handler::new("Function does not return bytes."))?)
-    }
-}
+use streamson_lib::{handler, strategy};
 
 /// Low level Python wrapper for Convert strategy
 #[pyclass]

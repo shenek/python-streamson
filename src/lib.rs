@@ -1,15 +1,17 @@
 pub mod convert;
 pub mod extract;
 pub mod filter;
+pub mod handler;
 pub mod trigger;
 
-pub use convert::{Convert, PythonConverter};
+pub use convert::Convert;
 pub use extract::Extract;
 pub use filter::Filter;
-pub use trigger::{PythonHandler, Trigger};
+pub use handler::{PythonConverter, PythonHandler};
+pub use trigger::Trigger;
 
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
-
+use std::str::FromStr;
 use streamson_lib::{error, matcher};
 
 create_exception!(streamson, StreamsonError, exceptions::ValueError);
@@ -45,7 +47,7 @@ impl RustMatcher {
     pub fn simple(path: String) -> PyResult<Self> {
         Ok(Self {
             inner: matcher::Combinator::new(
-                matcher::Simple::new(&path).map_err(StreamsonError::from)?,
+                matcher::Simple::from_str(&path).map_err(StreamsonError::from)?,
             ),
         })
     }
@@ -53,12 +55,13 @@ impl RustMatcher {
     /// Create a new instance of depth matcher
     ///
     /// # Arguments
-    /// * `min_depth` - min depth
-    /// * `max_depth` - max depth (Optional)
+    /// * `depth_str` - string which can be parsed to depth matcher
     #[staticmethod]
-    pub fn depth(min_depth: usize, max_depth: Option<usize>) -> PyResult<Self> {
+    pub fn depth(depth_str: String) -> PyResult<Self> {
         Ok(Self {
-            inner: matcher::Combinator::new(matcher::Depth::new(min_depth, max_depth)),
+            inner: matcher::Combinator::new(
+                matcher::Depth::from_str(&depth_str).map_err(StreamsonError::from)?,
+            ),
         })
     }
 }

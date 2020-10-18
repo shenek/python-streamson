@@ -8,7 +8,7 @@ from .matcher import Matcher
 def filter_iter(
     input_gen: typing.Generator[bytes, None, None],
     matcher: Matcher,
-) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
+) -> typing.Generator[str, None, None]:
     """Filters json parts from generator specified by given matcher
     :param: input_gen: input generator
     :param: matcher: used matcher
@@ -25,7 +25,7 @@ def filter_fd(
     input_fd: typing.IO[bytes],
     matcher: Matcher,
     buffer_size: int = 1024 * 1024,
-) -> typing.Generator[typing.Tuple[str, typing.Any], None, None]:
+) -> typing.Generator[str, None, None]:
     """Filters json parts from input file specified by given matcher
     :param: input_fd: input fd
     :param: matcher: used matcher

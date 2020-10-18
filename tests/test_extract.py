@@ -89,7 +89,7 @@ def test_simple(io_reader, data, kind, convert, extract_path):
     ],
 )
 def test_depth(io_reader, data, kind, convert, extract_path):
-    matcher = streamson.DepthMatcher(1)
+    matcher = streamson.DepthMatcher("1")
     if kind == Kind.ITER:
         extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
@@ -105,7 +105,7 @@ def test_depth(io_reader, data, kind, convert, extract_path):
     with pytest.raises(StopIteration):
         next(extracted)
 
-    matcher = streamson.DepthMatcher(0)
+    matcher = streamson.DepthMatcher("0")
     if kind == Kind.ITER:
         extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
@@ -152,7 +152,7 @@ def test_depth(io_reader, data, kind, convert, extract_path):
     ],
 )
 def test_invert(io_reader, data, kind, convert, extract_path):
-    matcher = ~streamson.DepthMatcher(2)
+    matcher = ~streamson.DepthMatcher("2")
     if kind == Kind.ITER:
         extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
     elif kind == Kind.FD:
@@ -239,7 +239,7 @@ def test_all(io_reader, data, kind, convert, extract_path):
     ],
 )
 def test_any(io_reader, data, kind, convert, extract_path):
-    matcher = streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')
+    matcher = streamson.DepthMatcher("2-2") | streamson.SimpleMatcher('{"users"}')
 
     if kind == Kind.ITER:
         extracted = streamson.extract_iter((e for e in data), matcher, convert, extract_path)
@@ -294,7 +294,7 @@ def test_any(io_reader, data, kind, convert, extract_path):
     ],
 )
 def test_complex(io_reader, data, kind, convert, extract_path):
-    matcher = (streamson.DepthMatcher(2, 2) | streamson.SimpleMatcher('{"users"}')) & ~streamson.SimpleMatcher(
+    matcher = (streamson.DepthMatcher("2-2") | streamson.SimpleMatcher('{"users"}')) & ~streamson.SimpleMatcher(
         '{"groups"}[0]'
     )
 

@@ -16,7 +16,7 @@ async def test_simple(make_async_gen, handler, extract_path):
     hdl, output = handler
 
     matcher = streamson.SimpleMatcher('{"users"}[]')
-    async_out = streamson.trigger_async(make_async_gen()(), [hdl], matcher, extract_path)
+    async_out = streamson.trigger_async(make_async_gen()(), [(hdl, matcher)], extract_path)
 
     output_data = b""
     async for rec in async_out:

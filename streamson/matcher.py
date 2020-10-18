@@ -1,5 +1,3 @@
-import typing
-
 from streamson.streamson import RustMatcher
 
 
@@ -22,16 +20,11 @@ class Matcher:
 
 
 class DepthMatcher(Matcher):
-    def __init__(
-        self,
-        min_depth: int,
-        max_depth: typing.Optional[int] = None,
-    ):
+    def __init__(self, depth_str: str):
         """Depth matcher which matches the depth in json.
-        :param: min_depth: minimal matched depth
-        :param: max_depth: maximal matched depth (optinal if not set it will match all higher)
+        :param: depth_str: string in format "min[-max]"
         """
-        super().__init__(RustMatcher.depth(min_depth, max_depth))
+        super().__init__(RustMatcher.depth(depth_str))
 
 
 class SimpleMatcher(Matcher):

@@ -10,6 +10,9 @@ keywords = ["json", "python", "splitter"]
 repository = "https://github.com/shenek/python-streamson"
 categories = ["parsing"]
 
+[package.metadata.maturin.scripts]
+streamson = "streamson:__main__.main"
+
 [package.metadata.maturin]
 classifier = [
     "Development Status :: 4 - Beta",

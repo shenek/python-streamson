@@ -1,63 +1,7 @@
-use super::{RustMatcher, StreamsonError};
+use super::{PythonHandler, RustMatcher, StreamsonError};
 use pyo3::prelude::*;
 use std::sync::{Arc, Mutex};
-use streamson_lib::{error, handler, path::Path, strategy};
-
-/// Streamson handler which calls python callable
-#[pyclass]
-#[derive(Clone)]
-pub struct PythonHandler {
-    callable: PyObject,
-    require_path: bool,
-}
-
-#[pymethods]
-impl PythonHandler {
-    /// Create instance of PythonHandler
-    ///
-    /// # Arguments
-    /// * `callable` - python callable (3 arguments)
-    /// * `require_path` - should path be passed to handler
-    #[new]
-    pub fn new(callable: PyObject, require_path: bool) -> Self {
-        Self {
-            callable,
-            require_path,
-        }
-    }
-}
-
-impl handler::Handler for PythonHandler {
-    /// Call python function as a part of rust handler
-    ///
-    /// # Arguments
-    /// * `path` - matched path
-    /// * `matcher_idx` - index of triggered matcher
-    /// * `data` - matched data
-    fn handle(
-        &mut self,
-        path: &Path,
-        matcher_idx: usize,
-        data: Option<&[u8]>,
-    ) -> Result<Option<Vec<u8>>, error::Handler> {
-        let gil = Python::acquire_gil();
-        self.callable
-            .call1(
-                gil.python(),
-                (
-                    if self.require_path {
-                        Some(path.to_string())
-                    } else {
-                        None
-                    },
-                    matcher_idx,
-                    data,
-                ),
-            )
-            .map_err(|_| error::Handler::new("Calling python failed"))?;
-        Ok(None)
-    }
-}
+use streamson_lib::{handler, strategy};
 
 /// Low level Python wrapper for Trigger strategy
 #[pyclass]
