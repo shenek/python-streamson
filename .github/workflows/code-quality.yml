@@ -70,3 +70,37 @@ jobs:
       - name: Run tests
         run: |
           env PATH="${PATH}:${HOME}/.poetry/bin" poetry run tox
+
+  tests-binary:
+    name: Run binary tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+
+      - name: Install test binary
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --version 6.1.0 streamson-bin --bin streamson-bin-test --features test
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8.x"
+
+      - name: Install streamson from python package
+        run: pip install .
+
+      - name: Run binary test
+        run: streamson-bin-test streamson
