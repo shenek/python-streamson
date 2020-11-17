@@ -235,9 +235,9 @@ checksum = "fbee7696b84bbf3d89a1c2eccff0850e3047ed46bfcd2e92c29a2d074d57e252"
 
 [[package]]
 name = "streamson-lib"
-version = "6.0.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aebc92c4b9f0e3562339c135ca6b49f958b884383b060cd45e6cea5e967f3373"
+checksum = "d0c0c0687e22681bc4a06ea4592a909b57623b2b1c32773fc69ede341b821d0c"
 
 [[package]]
 name = "streamson-python"

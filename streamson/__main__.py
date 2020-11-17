@@ -1,4 +1,6 @@
 import argparse
+import collections
+import re
 import sys
 import typing
 
@@ -12,13 +14,24 @@ def convert_parser(root_parser):
     convert.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
     convert.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
 
-    convert.add_argument("-r", "--replace", help="Replaces matched part by given string", required=True)
+    action = convert.add_mutually_exclusive_group(required=True)
+    action.add_argument("-r", "--replace", help="Replaces matched part by given string")
+    action.add_argument("-o", "--shorten", help="Shortens matched data", nargs=2, metavar=("MAX_COUNT", "TERMINATOR"))
 
 
 def extract_parser(root_parser):
     extract = root_parser.add_parser("extract", help="Passes only matched parts of JSON")
     extract.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
     extract.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
+    extract.add_argument("-b", "--before", help="Will be printed before matched outputs", required=False, default="")
+    extract.add_argument("-a", "--after", help="Will be printed after matched outputs", required=False, default="")
+    extract.add_argument(
+        "-S",
+        "--separator",
+        help="Will be printed to separate matched outputs",
+        required=False,
+        default="",
+    )
 
 
 def filter_parser(root_parser):
@@ -64,16 +77,23 @@ def trigger_parser(root_parser):
         default=[],
     )
 
+    trigger_parser.add_argument(
+        "-s",
+        "--struct",
+        help="Goes through a json and prints JSON structure at the end of processing.",
+        action="store_true",
+    )
+
 
 def filter_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
     matcher: typing.Optional[streamson.Matcher] = None
-    for simple in options.simple:
+    for simple in options.simple or []:
         if matcher:
             matcher |= streamson.SimpleMatcher(simple)
         else:
             matcher = streamson.SimpleMatcher(simple)
 
-    for depth in options.depth:
+    for depth in options.depth or []:
         if matcher:
             matcher |= streamson.DepthMatcher(depth)
         else:
@@ -90,44 +110,68 @@ def filter_strategy(options: argparse.Namespace, input_gen: typing.Generator[byt
 
 def extract_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
     matcher: typing.Optional[streamson.Matcher] = None
-    for simple in options.simple:
+    for simple in options.simple or []:
         if matcher:
             matcher |= streamson.SimpleMatcher(simple)
         else:
             matcher = streamson.SimpleMatcher(simple)
 
-    for depth in options.depth:
+    for depth in options.depth or []:
         if matcher:
             matcher |= streamson.DepthMatcher(depth)
         else:
             matcher = streamson.DepthMatcher(depth)
 
     if matcher:
+        sys.stdout.write(options.before)
+        first = True
         for _, output in streamson.extract_iter(input_gen, matcher):
+            if not first:
+                sys.stdout.write(options.separator)
+            else:
+                first = False
             sys.stdout.write(output)
+        sys.stdout.write(options.after)
 
 
 def convert_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
     matcher: typing.Optional[streamson.Matcher] = None
-    for simple in options.simple:
+    for simple in options.simple or []:
         if matcher:
             matcher |= streamson.SimpleMatcher(simple)
         else:
             matcher = streamson.SimpleMatcher(simple)
 
-    for depth in options.depth:
+    for depth in options.depth or []:
         if matcher:
             matcher |= streamson.DepthMatcher(depth)
         else:
             matcher = streamson.DepthMatcher(depth)
 
-    replace_str = options.replace
+    if options.shorten:
 
-    def replace(path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]) -> typing.Optional[bytes]:
-        return replace_str.encode()
+        def shorten(
+            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
+        ) -> typing.Optional[bytes]:
+            length, end = options.shorten
+            if data:
+                return bytes(bytearray(data[: int(length) + 1])) + end.encode()
+
+            return None
+
+        converter = shorten
+
+    elif options.replace:
+
+        def replace(
+            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
+        ) -> typing.Optional[bytes]:
+            return options.replace.encode()
+
+        converter = replace
 
     if matcher:
-        for output in streamson.convert_iter(input_gen, [replace], matcher, False):
+        for output in streamson.convert_iter(input_gen, [converter], matcher, False):
             sys.stdout.write(output)
 
 
@@ -192,8 +236,27 @@ def trigger_strategy(options: argparse.Namespace, input_gen: typing.Generator[by
         matcher = make_matcher(matcher_name, matcher_str)
         handler_matcher_combinations.append((handler, matcher))
 
+    if options.struct:
+        counter: typing.Counter[str] = collections.Counter()
+
+        def handler(
+            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
+        ) -> typing.Optional[bytes]:
+
+            key = "<root>" if not path else re.sub(r"\[[0-9\-,]*\]", "[]", path)
+            counter[key] += 1
+            return None
+
+        matcher = streamson.AllMatcher()
+        handler_matcher_combinations.append((handler, matcher))
+
     for output in streamson.trigger_iter(input_gen, handler_matcher_combinations, True):
         pass
+
+    if options.struct:
+        print("JSON structure:")
+        for key in sorted(counter):
+            print(f"  {key}: {counter[key]}")
 
 
 def main():

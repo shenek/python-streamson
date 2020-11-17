@@ -37,3 +37,9 @@ class SimpleMatcher(Matcher):
         :param: path: which will be used to create a SimpleMatcher
         """
         super().__init__(RustMatcher.simple(path))
+
+
+class AllMatcher(Matcher):
+    def __init__(self):
+        """Matches all paths"""
+        super().__init__(RustMatcher.all())

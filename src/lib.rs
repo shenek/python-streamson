@@ -64,6 +64,14 @@ impl RustMatcher {
             ),
         })
     }
+
+    /// Create a matcher which will match all paths
+    #[staticmethod]
+    pub fn all() -> PyResult<Self> {
+        Ok(Self {
+            inner: matcher::Combinator::new(matcher::All),
+        })
+    }
 }
 
 #[pyproto]
