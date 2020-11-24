@@ -241,7 +241,7 @@ checksum = "d0c0c0687e22681bc4a06ea4592a909b57623b2b1c32773fc69ede341b821d0c"
 
 [[package]]
 name = "streamson-python"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "pyo3",
  "streamson-lib",

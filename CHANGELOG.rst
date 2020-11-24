@@ -1,3 +1,12 @@
+3.1.0 (2020-11-24)
+------------------
+
+* upgraded streamson-lib to 6.2
+* added streamson binary - passes tests of stremson-bin
+* tox integration
+* refactor to use strategies similar to streamson-lib
+* python 3.9 compatibility
+
 3.0.0 (2020-09-03)
 ------------------
 
