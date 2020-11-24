@@ -9,12 +9,11 @@ name: Release
 jobs:
   build:
     name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        #os: [ubuntu-latest, windows-latest, macos-latest]
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -29,53 +28,55 @@ jobs:
       - name: Setup python 3.6
         uses: actions/setup-python@v2
         with:
-          python-version: '3.6'
+          python-version: 3.6
 
       - name: Setup python 3.7
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: 3.7
 
       - name: Setup python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: 3.8
 
       - name: Install poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: 1.1.4
 
       - name: Install dependencies
-        run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry install
+        run: poetry install
 
       - name: Build wheels
-        run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run maturin build
+        run: poetry run maturin build
 
       - name: Copy binary
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir -p ./python-streamson-linux/
-          cp target/wheels/*.whl python-streamson-linux/
-          tar czf python-streamson-linux.tar.gz python-streamson-linux
+          mkdir -p ./streamson-linux/
+          cp target/wheels/*.whl streamson-linux/
+          tar czf streamson-linux.tar.gz streamson-linux/
           mkdir -p ./dist
-          cp python-streamson-linux.tar.gz dist/
+          cp streamson-linux.tar.gz dist/
 
-      #- name: Copy binary
-      #  if: matrix.os == 'windows-latest'
-      #  run: |
-      #    mkdir -p ./dist
-      #    cp target/wheel/*.whl dist/
+      - name: Copy binary
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir ./streamson-windows/
+          cp target/wheels/*.whl streamson-windows/
+          Compress-Archive -Path streamson-windows/ -DestinationPath streamson-windows.zip
+          mkdir ./dist
+          cp streamson-windows.zip dist/
 
       - name: Copy binary
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir -p ./python-streamson-macos/
-          cp target/wheels/*.whl python-streamson-macos/
-          tar czf python-streamson-macos.tar.gz python-streamson-macos
+          mkdir -p ./streamson-macos/
+          cp target/wheels/*.whl streamson-macos/
+          tar czf streamson-macos.tar.gz streamson-macos/
           mkdir -p ./dist
-          cp python-streamson-macos.tar.gz dist/
+          cp streamson-macos.tar.gz dist/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
@@ -83,14 +84,10 @@ jobs:
           name: ${{ matrix.os }}
           path: ./dist
 
-      - name: List
-        run: ls -al ./dist
-
   release:
     name: Create Release
-    runs-on: ubuntu-latest
     needs: ['build']
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@master
@@ -101,11 +98,11 @@ jobs:
           name: ubuntu-latest
           path: dist
 
-      #- name: Download artifacts windows
-      #  uses: actions/download-artifact@v1
-      #  with:
-      #    name: windows-latest
-      #    path: dist
+      - name: Download artifacts windows
+        uses: actions/download-artifact@v1
+        with:
+          name: windows-latest
+          path: dist
 
       - name: Download artifacts macos
         uses: actions/download-artifact@v1
@@ -114,7 +111,7 @@ jobs:
           path: dist
 
       - name: Get description
-        run: echo "##[set-output name=tag_description;]$(git tag -l --format='%(contents:body)' ${{ github.ref }})"
+        run: echo "::set-output name=DESCRIPTION::$(git tag -l --format='%(contents:body)' ${{ github.ref }})"
         id: get_description
 
       - name: Create Release
@@ -125,9 +122,10 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: "${{ steps.get_description.outputs.description }}"
+          body: "${{ steps.get_description.outputs.DESCRIPTION }}"
           draft: false
           prerelease: false
+        continue-on-error: true  # Already existing release
 
       - name: Upload Release Asset ubuntu
         uses: actions/upload-release-asset@v1.0.1
@@ -135,20 +133,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/python-streamson-linux.tar.gz
-          asset_name: python-streamson-linux.tar.gz
+          asset_path: dist/streamson-linux.tar.gz
+          asset_name: streamson-linux.tar.gz
           asset_content_type: application/tar+gzip
 
-
-      #- name: Upload Release Asset windows
-      #  uses: actions/upload-release-asset@v1.0.1
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #  with:
-      #    upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #    asset_path: dist/ucelofka-windows.exe
-      #    asset_name: ucelofka-windows.exe
-      #    asset_content_type: application/bin
+      - name: Upload Release Asset windows
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/streamson-windows.zip
+          asset_name: streamson-windows.zip
+          asset_content_type: application/bin
 
       - name: Upload Release Asset macos
         uses: actions/upload-release-asset@v1.0.1
@@ -156,6 +153,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/python-streamson-macos.tar.gz
-          asset_name: python-streamson-macos.tar.gz
+          asset_path: dist/streamson-macos.tar.gz
+          asset_name: streamson-macos.tar.gz
           asset_content_type: application/tar+gzip
