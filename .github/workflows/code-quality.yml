@@ -23,8 +23,9 @@ jobs:
           python-version: "3.8.x"
 
       - name: Install poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: 1.1.4
 
       - name: Install virtualenv
         run: |
@@ -32,18 +33,17 @@ jobs:
           sudo apt-get install python3-venv
 
       - name: Install dependencies
-        run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry install
+        run: poetry install
 
       - name: Run pre-commit checks
         run: |
-          env RUSTFLAGS="-D unused_crate_dependencies" PATH="${PATH}:${HOME}/.poetry/bin" poetry run pre-commit run --hook-stage push --all-files
+          env RUSTFLAGS="-D unused_crate_dependencies" poetry run pre-commit run --hook-stage push --all-files
 
   tests-python:
     name: Run ${{ matrix.os }} tests
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -60,16 +60,15 @@ jobs:
           python-version: "3.8.x"
 
       - name: Install poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: 1.1.4
 
       - name: Install streamson
-        run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry install
+        run: poetry install
 
       - name: Run tests
-        run: |
-          env PATH="${PATH}:${HOME}/.poetry/bin" poetry run tox
+        run: poetry run tox
 
   tests-binary:
     name: Run binary tests
