@@ -43,3 +43,14 @@ class AllMatcher(Matcher):
     def __init__(self):
         """Matches all paths"""
         super().__init__(RustMatcher.all())
+
+
+class RegexMatcher(Matcher):
+    def __init__(self, regex: str):
+        """Regex matcher to match path using regex
+        e.g.
+        {"user[0-9]"} will match {"user1"}, {"user2"}, ...
+
+        :param: regex: will be used to create a RegexMatcher
+        """
+        super().__init__(RustMatcher.regex(regex))

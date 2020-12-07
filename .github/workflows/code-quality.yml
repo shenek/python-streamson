@@ -91,7 +91,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: --version 6.1.0 streamson-bin --bin streamson-bin-test --features test
+          args: --version 6.3.0 streamson-bin --bin streamson-bin-test --features test
 
       - name: Setup python
         uses: actions/setup-python@v2

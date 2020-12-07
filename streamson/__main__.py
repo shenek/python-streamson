@@ -1,5 +1,6 @@
 import argparse
 import collections
+import json
 import re
 import sys
 import typing
@@ -13,16 +14,19 @@ def convert_parser(root_parser):
     convert = root_parser.add_parser("convert", help="Convert parts of JSON")
     convert.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
     convert.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
+    convert.add_argument("-x", "--regex", help="Match by regex", required=False, action="append")
 
     action = convert.add_mutually_exclusive_group(required=True)
     action.add_argument("-r", "--replace", help="Replaces matched part by given string")
     action.add_argument("-o", "--shorten", help="Shortens matched data", nargs=2, metavar=("MAX_COUNT", "TERMINATOR"))
+    action.add_argument("-u", "--unstringify", help="Unstringifies matched data", action="store_true")
 
 
 def extract_parser(root_parser):
     extract = root_parser.add_parser("extract", help="Passes only matched parts of JSON")
     extract.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
     extract.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
+    extract.add_argument("-x", "--regex", help="Match by regex", required=False, action="append")
     extract.add_argument("-b", "--before", help="Will be printed before matched outputs", required=False, default="")
     extract.add_argument("-a", "--after", help="Will be printed after matched outputs", required=False, default="")
     extract.add_argument(
@@ -38,6 +42,7 @@ def filter_parser(root_parser):
     filter_parser = root_parser.add_parser("filter", help="Removes matched parts of JSON")
     filter_parser.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
     filter_parser.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
+    filter_parser.add_argument("-x", "--regex", help="Match by regex", required=False, action="append")
 
 
 def trigger_parser(root_parser):
@@ -99,6 +104,12 @@ def filter_strategy(options: argparse.Namespace, input_gen: typing.Generator[byt
         else:
             matcher = streamson.DepthMatcher(depth)
 
+    for regex in options.regex or []:
+        if matcher:
+            matcher |= streamson.RegexMatcher(regex)
+        else:
+            matcher = streamson.RegexMatcher(regex)
+
     if matcher:
         for output in streamson.filter_iter(input_gen, matcher):
             sys.stdout.write(output)
@@ -121,6 +132,12 @@ def extract_strategy(options: argparse.Namespace, input_gen: typing.Generator[by
             matcher |= streamson.DepthMatcher(depth)
         else:
             matcher = streamson.DepthMatcher(depth)
+
+    for regex in options.regex or []:
+        if matcher:
+            matcher |= streamson.RegexMatcher(regex)
+        else:
+            matcher = streamson.RegexMatcher(regex)
 
     if matcher:
         sys.stdout.write(options.before)
@@ -148,6 +165,12 @@ def convert_strategy(options: argparse.Namespace, input_gen: typing.Generator[by
         else:
             matcher = streamson.DepthMatcher(depth)
 
+    for regex in options.regex or []:
+        if matcher:
+            matcher |= streamson.RegexMatcher(regex)
+        else:
+            matcher = streamson.RegexMatcher(regex)
+
     if options.shorten:
 
         def shorten(
@@ -169,6 +192,21 @@ def convert_strategy(options: argparse.Namespace, input_gen: typing.Generator[by
             return options.replace.encode()
 
         converter = replace
+
+    elif options.unstringify:
+
+        def unstringify(
+            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
+        ) -> typing.Optional[bytes]:
+            if data:
+                try:
+                    return json.dumps(json.loads(json.loads(bytes(bytearray(data)).decode()))).encode()
+                except Exception:
+                    return data
+
+            return data
+
+        converter = unstringify
 
     if matcher:
         for output in streamson.convert_iter(input_gen, [converter], matcher, False):
@@ -192,6 +230,8 @@ def trigger_strategy(options: argparse.Namespace, input_gen: typing.Generator[by
             pass
         elif matcher_name == "simple":
             matcher = streamson.SimpleMatcher(matcher_str)
+        elif matcher_name == "regex":
+            matcher = streamson.RegexMatcher(matcher_str)
         else:
             raise NotImplementedError()
         return matcher

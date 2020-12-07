@@ -12,6 +12,7 @@ pub use trigger::Trigger;
 
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
 use std::str::FromStr;
+use streamson_extra_matchers::Regex;
 use streamson_lib::{error, matcher};
 
 create_exception!(streamson, StreamsonError, exceptions::ValueError);
@@ -70,6 +71,14 @@ impl RustMatcher {
     pub fn all() -> PyResult<Self> {
         Ok(Self {
             inner: matcher::Combinator::new(matcher::All),
+        })
+    }
+
+    /// Create a matcher which will match by regex
+    #[staticmethod]
+    pub fn regex(regex: String) -> PyResult<Self> {
+        Ok(Self {
+            inner: matcher::Combinator::new(Regex::from_str(&regex).map_err(StreamsonError::from)?),
         })
     }
 }
