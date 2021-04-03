@@ -38,7 +38,7 @@ impl Convert {
 
     pub fn process(&mut self, input_data: &[u8]) -> PyResult<String> {
         match self.convert.process(input_data) {
-            Err(err) => Err(StreamsonError::from(err).into()),
+            Err(err) => Err(StreamsonError::new_err(err.to_string())),
             Ok(data_list) => {
                 let mut res = String::new();
                 for out_data in data_list {

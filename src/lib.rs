@@ -13,22 +13,9 @@ pub use trigger::Trigger;
 use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*};
 use std::str::FromStr;
 use streamson_extra_matchers::Regex;
-use streamson_lib::{error, matcher};
+use streamson_lib::matcher;
 
-create_exception!(streamson, StreamsonError, exceptions::ValueError);
-create_exception!(streamson, MatcherUsed, exceptions::RuntimeError);
-
-impl From<error::General> for StreamsonError {
-    fn from(_gerror: error::General) -> Self {
-        Self
-    }
-}
-
-impl From<error::Matcher> for StreamsonError {
-    fn from(_gerror: error::Matcher) -> Self {
-        Self
-    }
-}
+create_exception!(streamson, StreamsonError, exceptions::PyValueError);
 
 /// Python wrapper around matchers
 #[pyclass]
@@ -48,7 +35,8 @@ impl RustMatcher {
     pub fn simple(path: String) -> PyResult<Self> {
         Ok(Self {
             inner: matcher::Combinator::new(
-                matcher::Simple::from_str(&path).map_err(StreamsonError::from)?,
+                matcher::Simple::from_str(&path)
+                    .map_err(|e| StreamsonError::new_err(e.to_string()))?,
             ),
         })
     }
@@ -61,7 +49,8 @@ impl RustMatcher {
     pub fn depth(depth_str: String) -> PyResult<Self> {
         Ok(Self {
             inner: matcher::Combinator::new(
-                matcher::Depth::from_str(&depth_str).map_err(StreamsonError::from)?,
+                matcher::Depth::from_str(&depth_str)
+                    .map_err(|e| StreamsonError::new_err(e.to_string()))?,
             ),
         })
     }
@@ -78,7 +67,9 @@ impl RustMatcher {
     #[staticmethod]
     pub fn regex(regex: String) -> PyResult<Self> {
         Ok(Self {
-            inner: matcher::Combinator::new(Regex::from_str(&regex).map_err(StreamsonError::from)?),
+            inner: matcher::Combinator::new(
+                Regex::from_str(&regex).map_err(|e| StreamsonError::new_err(e.to_string()))?,
+            ),
         })
     }
 }

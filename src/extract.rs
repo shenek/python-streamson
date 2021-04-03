@@ -38,7 +38,7 @@ impl Extract {
     /// * `vector of tuples` - (path_or_none, data)
     pub fn process(&mut self, data: &[u8]) -> PyResult<Vec<(Option<String>, String)>> {
         match self.extract.process(data) {
-            Err(err) => Err(StreamsonError::from(err).into()),
+            Err(err) => Err(StreamsonError::new_err(err.to_string())),
             Ok(chunks) => {
                 let mut res = vec![];
                 for (path, data) in chunks {

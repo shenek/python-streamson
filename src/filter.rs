@@ -34,7 +34,7 @@ impl Filter {
     /// * `filtered output`
     pub fn process(&mut self, data: &[u8]) -> PyResult<String> {
         match self.filter.process(data) {
-            Err(err) => Err(StreamsonError::from(err).into()),
+            Err(err) => Err(StreamsonError::new_err(err.to_string())),
             Ok(data) => Ok(String::from_utf8(data)?),
         }
     }
