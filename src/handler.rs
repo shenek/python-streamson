@@ -45,8 +45,8 @@ impl handler::Handler for PythonConverter {
             )
             .map_err(|_| error::Handler::new("Failed to call handler function"))?;
         let bytes = res.cast_as::<PyBytes>(gil.python()).unwrap();
-        Ok(FromPyObject::extract(bytes)
-            .map_err(|_| error::Handler::new("Function does not return bytes."))?)
+        FromPyObject::extract(bytes)
+            .map_err(|_| error::Handler::new("Function does not return bytes."))
     }
 }
 
