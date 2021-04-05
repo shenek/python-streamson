@@ -25,14 +25,14 @@ class Kind(Enum):
         "iter-nopath",
     ],
 )
-def test_simple(io_reader, data, converter, kind, extract_path):
+def test_simple(io_reader, data, replace_handler, kind, extract_path):
 
     matcher = streamson.SimpleMatcher('{"users"}[1]')
-    output_data = ""
+    output_data = b""
     if kind == Kind.ITER:
-        for e in streamson.convert_iter((e for e in data), [converter], matcher, extract_path):
-            output_data += e
+        for e in streamson.convert_iter((e for e in data), replace_handler, matcher, extract_path):
+            output_data += bytes(e.data or [])
     elif kind == Kind.FD:
-        for e in streamson.convert_fd(io_reader, [converter], matcher, 5, extract_path):
-            output_data += e
-    assert output_data == '{"users": ["john", "***", "bob"], "groups": ["admins", "users"]}'
+        for e in streamson.convert_fd(io_reader, replace_handler, matcher, 5, extract_path):
+            output_data += bytes(e.data or [])
+    assert output_data == b'{"users": ["john", "***", "bob"], "groups": ["admins", "users"]}'

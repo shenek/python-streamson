@@ -274,33 +274,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
+name = "sedregex"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e938a8943651a6f1ab7606996b758cdc4628cb7a8c27fb1e9923e5871716972f"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbee7696b84bbf3d89a1c2eccff0850e3047ed46bfcd2e92c29a2d074d57e252"
 
 [[package]]
-name = "streamson-extra-matchers"
-version = "6.3.1"
+name = "streamson-lib"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6d5d9794580d500fdedd589b97a04498806ebc635eeeb40e1e1439c6d6402c4"
+checksum = "a8e3e02c71e8db9ec96a29843eb2d17d1a26e589f9405c1716d8afe8d41b8b07"
 dependencies = [
  "regex",
- "streamson-lib",
+ "sedregex",
 ]
-
-[[package]]
-name = "streamson-lib"
-version = "6.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "078d3b2f8ffd7c9d9b2ecc775004afeb84a27a07c703a5580b6f993aa93e2142"
 
 [[package]]
 name = "streamson-python"
 version = "3.1.0"
 dependencies = [
  "pyo3",
- "streamson-extra-matchers",
  "streamson-lib",
 ]
 

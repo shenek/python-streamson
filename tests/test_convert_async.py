@@ -1,5 +1,4 @@
 import pytest
-
 import streamson
 
 
@@ -12,12 +11,12 @@ import streamson
     ],
 )
 @pytest.mark.asyncio
-async def test_simple(make_async_gen, converter, extract_path):
+async def test_simple(make_async_gen, replace_handler, extract_path):
 
     matcher = streamson.SimpleMatcher('{"users"}[1]')
 
-    output_data = ""
-    async for e in streamson.convert_async(make_async_gen()(), [converter], matcher, extract_path):
-        output_data += e
+    output_data = b""
+    async for e in streamson.convert_async(make_async_gen()(), replace_handler, matcher, extract_path):
+        output_data += bytes(e.data or [])
 
-    assert output_data == '{"users": ["john", "***", "bob"]}'
+    assert output_data == b'{"users": ["john", "***", "bob"]}'

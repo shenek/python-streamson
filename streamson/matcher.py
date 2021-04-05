@@ -39,12 +39,6 @@ class SimpleMatcher(Matcher):
         super().__init__(RustMatcher.simple(path))
 
 
-class AllMatcher(Matcher):
-    def __init__(self):
-        """Matches all paths"""
-        super().__init__(RustMatcher.all())
-
-
 class RegexMatcher(Matcher):
     def __init__(self, regex: str):
         """Regex matcher to match path using regex

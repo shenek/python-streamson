@@ -1,17 +1,13 @@
 import typing
 
-from streamson.streamson import PythonHandler, Trigger
+from streamson.streamson import BaseHandler, Trigger
 
 from .matcher import Matcher
 
 
 def trigger_iter(
     input_gen: typing.Generator[bytes, None, None],
-    matcher_handler_combinations: typing.List[
-        typing.Tuple[
-            typing.Callable[[typing.Optional[str], int, typing.Optional[bytes]], typing.Optional[bytes]], Matcher
-        ]
-    ],
+    matcher_handler_combinations: typing.List[typing.Tuple[Matcher, BaseHandler]],
     require_path: bool = True,
 ) -> typing.Generator[bytes, None, None]:
     """Triggers handlers on matched input
@@ -22,8 +18,8 @@ def trigger_iter(
     :yields: input data
     """
     trigger = Trigger()
-    for handler, matcher in matcher_handler_combinations:
-        trigger.add_matcher(matcher.inner, [PythonHandler(handler, require_path)])
+    for matcher, handler in matcher_handler_combinations:
+        trigger.add_matcher(matcher.inner, handler)
     for item in input_gen:
         trigger.process(item)
         yield item
@@ -31,11 +27,7 @@ def trigger_iter(
 
 def trigger_fd(
     input_fd: typing.IO[bytes],
-    matcher_handler_combinations: typing.List[
-        typing.Tuple[
-            typing.Callable[[typing.Optional[str], int, typing.Optional[bytes]], typing.Optional[bytes]], Matcher
-        ]
-    ],
+    matcher_handler_combinations: typing.List[typing.Tuple[Matcher, BaseHandler]],
     buffer_size: int = 1024 * 1024,
     require_path: bool = True,
 ) -> typing.Generator[bytes, None, None]:
@@ -48,8 +40,8 @@ def trigger_fd(
     :yields: input data
     """
     trigger = Trigger()
-    for handler, matcher in matcher_handler_combinations:
-        trigger.add_matcher(matcher.inner, [PythonHandler(handler, require_path)])
+    for matcher, handler in matcher_handler_combinations:
+        trigger.add_matcher(matcher.inner, handler)
 
     input_data = input_fd.read(buffer_size)
 
@@ -61,11 +53,7 @@ def trigger_fd(
 
 async def trigger_async(
     input_gen: typing.AsyncGenerator[bytes, None],
-    matcher_handler_combinations: typing.List[
-        typing.Tuple[
-            typing.Callable[[typing.Optional[str], int, typing.Optional[bytes]], typing.Optional[bytes]], Matcher
-        ]
-    ],
+    matcher_handler_combinations: typing.List[typing.Tuple[Matcher, BaseHandler]],
     require_path: bool = True,
 ):
     """Triggers handlers on matched data from async generator
@@ -76,8 +64,8 @@ async def trigger_async(
     :yields: input data
     """
     trigger = Trigger()
-    for handler, matcher in matcher_handler_combinations:
-        trigger.add_matcher(matcher.inner, [PythonHandler(handler, require_path)])
+    for matcher, handler in matcher_handler_combinations:
+        trigger.add_matcher(matcher.inner, handler)
 
     async for input_data in input_gen:
         trigger.process(input_data)

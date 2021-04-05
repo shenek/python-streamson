@@ -1,107 +1,82 @@
-use pyo3::{prelude::*, types::PyBytes};
-use streamson_lib::{error, handler, path::Path};
+pub mod analyser;
+pub mod base;
+pub mod buffer;
+pub mod indenter;
+pub mod indexer;
+pub mod output;
+pub mod python;
+pub mod regex;
+pub mod replace;
+pub mod shorten;
+pub mod unstringify;
 
-/// Streamson handler which performs data conversion
+pub use analyser::AnalyserHandler;
+pub use base::BaseHandler;
+pub use buffer::BufferHandler;
+pub use indenter::IndenterHandler;
+pub use indexer::IndexerHandler;
+pub use output::{FileHandler, StdoutHandler};
+pub use python::PythonHandler;
+pub use regex::RegexHandler;
+pub use replace::ReplaceHandler;
+pub use shorten::ShortenHandler;
+pub use unstringify::UnstringifyHandler;
+
+use pyo3::prelude::*;
+use streamson_lib::streamer;
+
 #[pyclass]
-#[derive(Clone)]
-pub struct PythonConverter {
-    callable: PyObject,
-    use_path: bool,
+pub struct PythonParsedKind {
+    pub kind: String,
 }
 
-#[pymethods]
-impl PythonConverter {
-    /// Create instance of PythonConverter
-    ///
-    /// # Arguments
-    /// * `callable` - python callable (3 arguments)
-    #[new]
-    pub fn new(callable: PyObject, use_path: bool) -> Self {
-        Self { callable, use_path }
-    }
-}
-
-impl handler::Handler for PythonConverter {
-    fn handle(
-        &mut self,
-        path: &Path,
-        matcher_idx: usize,
-        data: Option<&[u8]>,
-    ) -> Result<Option<Vec<u8>>, error::Handler> {
-        let gil = Python::acquire_gil();
-        let res = self
-            .callable
-            .call1(
-                gil.python(),
-                (
-                    if self.use_path {
-                        Some(path.to_string())
-                    } else {
-                        None
-                    },
-                    matcher_idx,
-                    data.unwrap().to_vec(),
-                ),
-            )
-            .map_err(|_| error::Handler::new("Failed to call handler function"))?;
-        let bytes = res.cast_as::<PyBytes>(gil.python()).unwrap();
-        FromPyObject::extract(bytes)
-            .map_err(|_| error::Handler::new("Function does not return bytes."))
-    }
-}
-
-/// Streamson handler which calls python callable
-#[pyclass]
-#[derive(Clone)]
-pub struct PythonHandler {
-    callable: PyObject,
-    require_path: bool,
-}
-
-#[pymethods]
-impl PythonHandler {
-    /// Create instance of PythonHandler
-    ///
-    /// # Arguments
-    /// * `callable` - python callable (3 arguments)
-    /// * `require_path` - should path be passed to handler
-    #[new]
-    pub fn new(callable: PyObject, require_path: bool) -> Self {
-        Self {
-            callable,
-            require_path,
+impl From<streamer::ParsedKind> for PythonParsedKind {
+    fn from(kind: streamer::ParsedKind) -> Self {
+        match kind {
+            streamer::ParsedKind::Obj => Self { kind: "Obj".into() },
+            streamer::ParsedKind::Arr => Self { kind: "Arr".into() },
+            streamer::ParsedKind::Str => Self { kind: "Str".into() },
+            streamer::ParsedKind::Num => Self { kind: "Num".into() },
+            streamer::ParsedKind::Null => Self {
+                kind: "Null".into(),
+            },
+            streamer::ParsedKind::Bool => Self {
+                kind: "Bool".into(),
+            },
         }
     }
 }
 
-impl handler::Handler for PythonHandler {
-    /// Call python function as a part of rust handler
-    ///
-    /// # Arguments
-    /// * `path` - matched path
-    /// * `matcher_idx` - index of triggered matcher
-    /// * `data` - matched data
-    fn handle(
-        &mut self,
-        path: &Path,
-        matcher_idx: usize,
-        data: Option<&[u8]>,
-    ) -> Result<Option<Vec<u8>>, error::Handler> {
-        let gil = Python::acquire_gil();
-        self.callable
-            .call1(
-                gil.python(),
-                (
-                    if self.require_path {
-                        Some(path.to_string())
-                    } else {
-                        None
-                    },
-                    matcher_idx,
-                    data,
-                ),
-            )
-            .map_err(|_| error::Handler::new("Calling python failed"))?;
-        Ok(None)
+#[pyclass]
+pub struct PythonToken {
+    pub token: String,
+    pub idx: Option<usize>,
+    pub kind: Option<PythonParsedKind>,
+}
+
+impl From<streamer::Token> for PythonToken {
+    fn from(token: streamer::Token) -> Self {
+        match token {
+            streamer::Token::Start(idx, kind) => Self {
+                token: "Start".into(),
+                idx: Some(idx),
+                kind: Some(kind.into()),
+            },
+            streamer::Token::End(idx, kind) => Self {
+                token: "End".into(),
+                idx: Some(idx),
+                kind: Some(kind.into()),
+            },
+            streamer::Token::Separator(idx) => Self {
+                token: "Separator".into(),
+                idx: Some(idx),
+                kind: None,
+            },
+            streamer::Token::Pending => Self {
+                token: "Pending".into(),
+                idx: None,
+                kind: None,
+            },
+        }
     }
 }
