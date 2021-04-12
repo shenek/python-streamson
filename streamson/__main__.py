@@ -1,32 +1,173 @@
 import argparse
-import collections
-import json
-import re
 import sys
 import typing
+from enum import Enum, auto
 
 import pkg_resources
 
 import streamson
 
 
-def convert_parser(root_parser):
-    convert = root_parser.add_parser("convert", help="Convert parts of JSON")
-    convert.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
-    convert.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
-    convert.add_argument("-x", "--regex", help="Match by regex", required=False, action="append")
+class Matcher(Enum):
+    SIMPLE = auto()
+    DEPTH = auto()
+    REGEX = auto()
 
-    action = convert.add_mutually_exclusive_group(required=True)
-    action.add_argument("-r", "--replace", help="Replaces matched part by given string")
-    action.add_argument("-o", "--shorten", help="Shortens matched data", nargs=2, metavar=("MAX_COUNT", "TERMINATOR"))
-    action.add_argument("-u", "--unstringify", help="Unstringifies matched data", action="store_true")
+    @staticmethod
+    def from_name(name: str) -> "Matcher":
+        if name == "s" or name == "simple":
+            return Matcher.SIMPLE
+        if name == "d" or name == "depth":
+            return Matcher.DEPTH
+        if name == "x" or name == "regex":
+            return Matcher.REGEX
+
+        raise RuntimeError(f"Unknown matcher name '{name}'")
+
+    def instance(self, definition) -> streamson.Matcher:
+        if self == Matcher.SIMPLE:
+            return streamson.matcher.SimpleMatcher(definition)
+        elif self == Matcher.DEPTH:
+            return streamson.matcher.DepthMatcher(definition)
+        elif self == Matcher.REGEX:
+            return streamson.matcher.RegexMatcher(definition)
+
+        raise NotImplementedError()
+
+
+class Handler(Enum):
+    ANALYSER = auto()
+    FILE = auto()
+    INDENTER = auto()
+    REGEX = auto()
+    REPLACE = auto()
+    SHORTEN = auto()
+    UNSTRINGIFY = auto()
+
+    @staticmethod
+    def from_name(name: str) -> "Handler":
+        if name == "a" or name == "analyser":
+            return Handler.ANALYSER
+        elif name == "f" or name == "file":
+            return Handler.FILE
+        elif name == "d" or name == "indenter":
+            return Handler.INDENTER
+        elif name == "x" or name == "regex":
+            return Handler.REGEX
+        elif name == "r" or name == "replace":
+            return Handler.REPLACE
+        elif name == "s" or name == "shorten":
+            return Handler.SHORTEN
+        elif name == "u" or name == "unstringify":
+            return Handler.UNSTRINGIFY
+
+        raise RuntimeError(f"Unknown matcher name '{name}'")
+
+    def instance(self, definition: typing.Optional[str] = None, *options: str) -> streamson.handler.BaseHandler:
+        if self == Handler.ANALYSER:
+            if definition or options:
+                raise ValueError("Analyser handler has no definition nor options")
+            return streamson.handler.AnalyserHandler()
+        elif self == Handler.FILE:
+            if not definition:
+                raise ValueError("File handler requires definition (path) as an argument")
+            if len(options) == 1:
+                write_path = options[0].lower() == "true"
+            else:
+                write_path = False
+            return streamson.handler.FileHandler(definition, write_path)
+        elif self == Handler.INDENTER:
+            if options:
+                raise ValueError("Indenter handler has no options")
+            return streamson.handler.IndenterHandler(definition)
+        elif self == Handler.REGEX:
+            if options:
+                raise ValueError("Regex handler has no options")
+            return streamson.handler.RegexHandler([definition])
+        elif self == Handler.REPLACE:
+            if options:
+                raise ValueError("Replace handler has no options")
+            return streamson.handler.ReplaceHandler(definition)
+        elif self == Handler.SHORTEN:
+            if options:
+                raise ValueError("Shorten handler has no options")
+            if not definition:
+                raise ValueError("Shorten handler: length option is required")
+            splitted = definition.split(",", 1)
+            if len(splitted) != 2:
+                raise ValueError("Shorten handler has wrong definition (size,terminator)")
+            try:
+                size = int(splitted[0])
+            except ValueError:
+                raise ValueError("Shorten handler has wrong definition (size,terminator)")
+            return streamson.handler.ShortenHandler(size, splitted[1])
+        elif self == Handler.UNSTRINGIFY:
+            if definition or options:
+                raise ValueError("Unstringify handler has no definition nor options")
+            return streamson.handler.UnstringifyHandler()
+
+        raise NotImplementedError()
+
+
+class Strategy(Enum):
+    CONVERT = auto()
+    FILTER = auto()
+    EXTRACT = auto()
+    TRIGGER = auto()
+
+    def available_handlers(self) -> typing.Tuple[Handler, ...]:
+        if self == Strategy.CONVERT:
+            return (Handler.FILE, Handler.REGEX, Handler.REPLACE, Handler.SHORTEN, Handler.UNSTRINGIFY)
+        if self == Strategy.FILTER:
+            return (Handler.FILE, Handler.REGEX, Handler.SHORTEN, Handler.UNSTRINGIFY)
+        if self == Strategy.EXTRACT:
+            return (Handler.FILE, Handler.REGEX, Handler.SHORTEN, Handler.UNSTRINGIFY)
+        if self == Strategy.TRIGGER:
+            return (Handler.FILE, Handler.REGEX, Handler.SHORTEN, Handler.UNSTRINGIFY)
+        raise NotImplementedError()
+
+
+def parse_element(value: str) -> typing.Tuple[str, typing.Optional[str], typing.List[str], typing.Optional[str]]:
+    splitted = value.split(":", 1)
+    definition = splitted[1] if len(splitted) == 2 else None
+    splitted = splitted[0].split(",")
+    options = splitted[1:]
+    splitted = splitted[0].split(".", 1)
+    group = splitted[1] if len(splitted) == 2 else None
+    name = splitted[0]
+    return name, group, options, definition
+
+
+def add_matcher(subparser: argparse.ArgumentParser):
+    subparser.add_argument(
+        "-m",
+        "--matcher",
+        action="append",
+        metavar="NAME[.GROUP][:DEFINITION]",
+        default=[],
+    )
+
+
+def add_handler(subparser: argparse.ArgumentParser):
+    subparser.add_argument(
+        "-h",
+        "--handler",
+        action="append",
+        metavar="NAME[.GROUP][,OPTION[,OPTION]][:DEFINITION]",
+        default=[],
+    )
+
+
+def convert_parser(root_parser):
+    convert = root_parser.add_parser("convert", help="Convert parts of JSON", add_help=False)
+    add_matcher(convert)
+    add_handler(convert)
 
 
 def extract_parser(root_parser):
-    extract = root_parser.add_parser("extract", help="Passes only matched parts of JSON")
-    extract.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
-    extract.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
-    extract.add_argument("-x", "--regex", help="Match by regex", required=False, action="append")
+    extract = root_parser.add_parser("extract", help="Passes only matched parts of JSON", add_help=False)
+    add_matcher(extract)
+    add_handler(extract)
     extract.add_argument("-b", "--before", help="Will be printed before matched outputs", required=False, default="")
     extract.add_argument("-a", "--after", help="Will be printed after matched outputs", required=False, default="")
     extract.add_argument(
@@ -39,270 +180,102 @@ def extract_parser(root_parser):
 
 
 def filter_parser(root_parser):
-    filter_parser = root_parser.add_parser("filter", help="Removes matched parts of JSON")
-    filter_parser.add_argument("-s", "--simple", help="Match by simple match", required=False, action="append")
-    filter_parser.add_argument("-d", "--depth", help="Match by depth", required=False, action="append")
-    filter_parser.add_argument("-x", "--regex", help="Match by regex", required=False, action="append")
+    filter_parser = root_parser.add_parser("filter", help="Removes matched parts of JSON", add_help=False)
+    add_matcher(filter_parser)
+    add_handler(filter_parser)
 
 
 def trigger_parser(root_parser):
-
-    trigger_parser = root_parser.add_parser("trigger", help="Triggers command on matched input")
-
-    trigger_parser.add_argument(
-        "-f",
-        "--file",
-        help="Writes matches to file separating records by newline",
-        required=False,
-        nargs=3,
-        metavar=("MATCHER_NAME", "MATCH", "FILE"),
-        action="append",
-        default=[],
-    )
-
-    trigger_parser.add_argument(
-        "-p",
-        "--print",
-        help="Prints matches to stdout separating records by a newline",
-        required=False,
-        nargs=2,
-        metavar=("MATCHER_NAME", "MATCH"),
-        action="append",
-        default=[],
-    )
-
-    trigger_parser.add_argument(
-        "-P",
-        "--print-with-header",
-        help="Prints matches to with header to stdout separating records by a newline",
-        required=False,
-        nargs=2,
-        metavar=("MATCHER_NAME", "MATCH"),
-        action="append",
-        default=[],
-    )
-
-    trigger_parser.add_argument(
-        "-s",
-        "--struct",
-        help="Goes through a json and prints JSON structure at the end of processing.",
-        action="store_true",
-    )
+    trigger_parser = root_parser.add_parser("trigger", help="Triggers command on matched input", add_help=False)
+    add_matcher(trigger_parser)
+    add_handler(trigger_parser)
 
 
-def filter_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    matcher: typing.Optional[streamson.Matcher] = None
-    for simple in options.simple or []:
-        if matcher:
-            matcher |= streamson.SimpleMatcher(simple)
-        else:
-            matcher = streamson.SimpleMatcher(simple)
+def build_matchers_and_handlers(parsed: argparse.Namespace) -> typing.Dict[typing.Optional[str], dict]:
+    res: typing.Dict[typing.Optional[str], dict] = {}
+    for matcher in parsed.matcher:
+        name, group, _, definition = parse_element(matcher)
+        matcher = Matcher.from_name(name).instance(definition)
+        record = res.get(group, {"matcher": None, "handler": None})
+        record["matcher"] = record["matcher"] | matcher if record["matcher"] else matcher
+        res[group] = record
 
-    for depth in options.depth or []:
-        if matcher:
-            matcher |= streamson.DepthMatcher(depth)
-        else:
-            matcher = streamson.DepthMatcher(depth)
+    for handler in parsed.handler:
+        name, group, options, definition = parse_element(handler)
+        handler = Handler.from_name(name).instance(definition, *options)
+        record = res.get(group, {"matcher": None, "handler": None})
+        record["handler"] = record["handler"] + handler if record["handler"] else handler
+        res[group] = record
 
-    for regex in options.regex or []:
-        if matcher:
-            matcher |= streamson.RegexMatcher(regex)
-        else:
-            matcher = streamson.RegexMatcher(regex)
+    return res
 
-    if matcher:
-        for output in streamson.filter_iter(input_gen, matcher):
-            sys.stdout.write(output)
+
+def filter_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
+    groups = build_matchers_and_handlers(parsed)
+    fltr = streamson.filter.Filter()
+
+    for record in groups.values():
+        fltr.add_matcher(record["matcher"].inner, record["handler"])
+
+    for item in input_gen:
+        for output in fltr.process(item):
+            if output.data:
+                sys.stdout.write(bytes(output.data).decode())
     else:
         # Just return stdin
         for input_data in input_gen:
             sys.stdout.buffer.write(input_data)
 
 
-def extract_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    matcher: typing.Optional[streamson.Matcher] = None
-    for simple in options.simple or []:
-        if matcher:
-            matcher |= streamson.SimpleMatcher(simple)
-        else:
-            matcher = streamson.SimpleMatcher(simple)
+def extract_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
+    groups = build_matchers_and_handlers(parsed)
+    extract = streamson.extract.Extract()
 
-    for depth in options.depth or []:
-        if matcher:
-            matcher |= streamson.DepthMatcher(depth)
-        else:
-            matcher = streamson.DepthMatcher(depth)
+    for record in groups.values():
+        extract.add_matcher(record["matcher"].inner, record["handler"])
 
-    for regex in options.regex or []:
-        if matcher:
-            matcher |= streamson.RegexMatcher(regex)
-        else:
-            matcher = streamson.RegexMatcher(regex)
-
-    if matcher:
-        sys.stdout.write(options.before)
-        first = True
-        for _, output in streamson.extract_iter(input_gen, matcher):
-            if not first:
-                sys.stdout.write(options.separator)
+    sys.stdout.write(parsed.before)
+    first = True
+    for item in input_gen:
+        for output in extract.process(item):
+            if not first and output.kind == "Start":
+                sys.stdout.write(parsed.separator)
             else:
                 first = False
-            sys.stdout.write(output)
-        sys.stdout.write(options.after)
+            if output.data:
+                sys.stdout.write(bytes(output.data).decode())
+    sys.stdout.write(parsed.after)
 
 
-def convert_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    matcher: typing.Optional[streamson.Matcher] = None
-    for simple in options.simple or []:
-        if matcher:
-            matcher |= streamson.SimpleMatcher(simple)
-        else:
-            matcher = streamson.SimpleMatcher(simple)
+def convert_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
+    groups = build_matchers_and_handlers(parsed)
+    convert = streamson.convert.Convert()
 
-    for depth in options.depth or []:
-        if matcher:
-            matcher |= streamson.DepthMatcher(depth)
-        else:
-            matcher = streamson.DepthMatcher(depth)
+    for record in groups.values():
+        convert.add_matcher(record["matcher"].inner, record["handler"])
 
-    for regex in options.regex or []:
-        if matcher:
-            matcher |= streamson.RegexMatcher(regex)
-        else:
-            matcher = streamson.RegexMatcher(regex)
-
-    if options.shorten:
-
-        def shorten(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-            length, end = options.shorten
-            if data:
-                return bytes(bytearray(data[: int(length) + 1])) + end.encode()
-
-            return None
-
-        converter = shorten
-
-    elif options.replace:
-
-        def replace(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-            return options.replace.encode()
-
-        converter = replace
-
-    elif options.unstringify:
-
-        def unstringify(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-            if data:
-                try:
-                    return json.dumps(json.loads(json.loads(bytes(bytearray(data)).decode()))).encode()
-                except Exception:
-                    return data
-
-            return data
-
-        converter = unstringify
-
-    if matcher:
-        for output in streamson.convert_iter(input_gen, [converter], matcher, False):
-            sys.stdout.write(output)
+    for item in input_gen:
+        for output in convert.process(item):
+            if output.data:
+                sys.stdout.write(bytes(output.data).decode())
 
 
-def trigger_strategy(options: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    handler_matcher_combinations: typing.List[
-        typing.Tuple[
-            typing.Callable[[typing.Optional[str], int, typing.Optional[bytes]], typing.Optional[bytes]],
-            streamson.Matcher,
-        ]
-    ] = []
+def trigger_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
+    groups = build_matchers_and_handlers(parsed)
+    trigger = streamson.trigger.Trigger()
 
-    matcher: streamson.Matcher
+    for record in groups.values():
+        trigger.add_matcher(record["matcher"].inner, record["handler"])
 
-    def make_matcher(matcher_name: str, matcher_str: str) -> streamson.Matcher:
-        matcher: streamson.Matcher
-        if matcher_name == "depth":
-            matcher = streamson.DepthMatcher(matcher_str)
-            pass
-        elif matcher_name == "simple":
-            matcher = streamson.SimpleMatcher(matcher_str)
-        elif matcher_name == "regex":
-            matcher = streamson.RegexMatcher(matcher_str)
-        else:
-            raise NotImplementedError()
-        return matcher
-
-    for matcher_name, matcher_str in options.print_with_header:
-
-        def handler(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-            if data:
-                sys.stdout.write(f"{path}: {data.decode()}\n")
-                sys.stdout.flush()
-            return None
-
-        matcher = make_matcher(matcher_name, matcher_str)
-        handler_matcher_combinations.append((handler, matcher))
-
-    for matcher_name, matcher_str in options.print:
-
-        def handler(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-            if data:
-                sys.stdout.write(f"{data.decode()}\n")
-                sys.stdout.flush()
-            return None
-
-        matcher = make_matcher(matcher_name, matcher_str)
-        handler_matcher_combinations.append((handler, matcher))
-
-    for matcher_name, matcher_str, file_path in options.file:
-        f = open(file_path, "wb")
-
-        def handler(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-            if data:
-                f.write(data + b"\n")
-                f.flush()
-            return None
-
-        matcher = make_matcher(matcher_name, matcher_str)
-        handler_matcher_combinations.append((handler, matcher))
-
-    if options.struct:
-        counter: typing.Counter[str] = collections.Counter()
-
-        def handler(
-            path: typing.Optional[str], matcher_idx: int, data: typing.Optional[bytes]
-        ) -> typing.Optional[bytes]:
-
-            key = "<root>" if not path else re.sub(r"\[[0-9\-,]*\]", "[]", path)
-            counter[key] += 1
-            return None
-
-        matcher = streamson.AllMatcher()
-        handler_matcher_combinations.append((handler, matcher))
-
-    for output in streamson.trigger_iter(input_gen, handler_matcher_combinations, True):
-        pass
-
-    if options.struct:
-        print("JSON structure:")
-        for key in sorted(counter):
-            print(f"  {key}: {counter[key]}")
+    for item in input_gen:
+        trigger.process(item)
+        sys.stdout.write(item.decode())
 
 
 def main():
     version = pkg_resources.get_distribution("streamson-python").version
 
-    parser = argparse.ArgumentParser(prog="streamson")
+    parser = argparse.ArgumentParser(prog="streamson", add_help=False)
     parser.add_argument("--version", action="version", version=version)
     parser.add_argument("-b", "--buffer-size", type=int, default=2 ** 20)
 
