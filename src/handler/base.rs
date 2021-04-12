@@ -8,14 +8,20 @@ pub struct BaseHandler {
     pub inner: Arc<Mutex<handler::Group>>,
 }
 
+impl Default for BaseHandler {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(handler::Group::new())),
+        }
+    }
+}
+
 #[pymethods]
 impl BaseHandler {
     /// Create instance of CombinatorHandler
     #[new]
     pub fn new() -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(handler::Group::new())),
-        }
+        Default::default()
     }
 
     pub fn merge(&self, other: &Self) -> Self {
@@ -33,9 +39,10 @@ impl BaseHandler {
             .subhandlers()
             .iter()
             .for_each(|h| joined.add_handler_mut(h.clone()));
-        return Self {
+
+        Self {
             inner: Arc::new(Mutex::new(joined)),
-        };
+        }
     }
 }
 

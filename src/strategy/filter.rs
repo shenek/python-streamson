@@ -26,7 +26,7 @@ impl Filter {
         self.filter.add_matcher(
             Box::new(matcher.inner.clone()),
             if let Some(hndlr) = handler {
-                Some(hndlr.inner.clone())
+                Some(hndlr.inner)
             } else {
                 None
             },

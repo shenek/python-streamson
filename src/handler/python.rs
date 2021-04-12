@@ -115,9 +115,8 @@ impl handler::Handler for PythonInnerHandler {
             })?;
         if !res.is_none(py) {
             let bytes = res.cast_as::<PyBytes>(gil.python()).unwrap();
-            let res = FromPyObject::extract(bytes)
-                .map_err(|_| error::Handler::new("Function does not return bytes."));
-            res
+            FromPyObject::extract(bytes)
+                .map_err(|_| error::Handler::new("Function does not return bytes."))
         } else {
             Ok(None)
         }
