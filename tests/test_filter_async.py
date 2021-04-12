@@ -1,6 +1,6 @@
 import pytest
+
 import streamson
-from streamson.handler import BufferHandler
 from streamson.output import Output
 
 

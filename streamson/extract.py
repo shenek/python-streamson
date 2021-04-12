@@ -2,8 +2,8 @@ import typing
 
 from streamson.streamson import Extract, PythonOutput
 
-from .matcher import Matcher
 from .handler import BaseHandler
+from .matcher import Matcher
 
 
 def extract_iter(

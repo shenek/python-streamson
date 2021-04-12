@@ -1,4 +1,5 @@
 import typing
+
 from streamson.streamson import PythonOutput
 
 

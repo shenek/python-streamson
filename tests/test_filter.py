@@ -1,6 +1,7 @@
 from enum import Enum, auto
 
 import pytest
+
 import streamson
 from streamson.handler import BufferHandler, PythonConverterHandler
 from streamson.output import Output
