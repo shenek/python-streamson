@@ -79,7 +79,15 @@ class Handler(Enum):
         elif self == Handler.INDENTER:
             if options:
                 raise ValueError("Indenter handler has no options")
-            return streamson.handler.IndenterHandler(definition)
+            spaces: typing.Optional[int]
+            if definition:
+                try:
+                    spaces = int(definition)
+                except ValueError:
+                    raise ValueError("Indenter can't parse number of spaces")
+            else:
+                spaces = None
+            return streamson.handler.IndenterHandler(spaces)
         elif self == Handler.REGEX:
             if options:
                 raise ValueError("Regex handler has no options")
@@ -110,12 +118,24 @@ class Handler(Enum):
 
 
 class Strategy(Enum):
+    ALL = auto()
     CONVERT = auto()
     FILTER = auto()
     EXTRACT = auto()
     TRIGGER = auto()
 
+    def check_handler(self, handler: Handler):
+        if handler not in self.available_handlers:
+            handler.name.lower()
+            print(
+                f"handler `{handler.name.lower()}` can not be used in `{self.name.lower()}` strategy.", file=sys.stderr
+            )
+            sys.exit(1)
+
+    @property
     def available_handlers(self) -> typing.Tuple[Handler, ...]:
+        if self == Strategy.ALL:
+            return (Handler.INDENTER, Handler.ANALYSER)
         if self == Strategy.CONVERT:
             return (Handler.FILE, Handler.REGEX, Handler.REPLACE, Handler.SHORTEN, Handler.UNSTRINGIFY)
         if self == Strategy.FILTER:
@@ -158,6 +178,11 @@ def add_handler(subparser: argparse.ArgumentParser):
     )
 
 
+def all_parser(root_parser):
+    all_parser = root_parser.add_parser("all", help="Matches parts of JSON", add_help=False)
+    add_handler(all_parser)
+
+
 def convert_parser(root_parser):
     convert = root_parser.add_parser("convert", help="Convert parts of JSON", add_help=False)
     add_matcher(convert)
@@ -191,27 +216,72 @@ def trigger_parser(root_parser):
     add_handler(trigger_parser)
 
 
-def build_matchers_and_handlers(parsed: argparse.Namespace) -> typing.Dict[typing.Optional[str], dict]:
-    res: typing.Dict[typing.Optional[str], dict] = {}
-    for matcher in parsed.matcher:
-        name, group, _, definition = parse_element(matcher)
-        matcher = Matcher.from_name(name).instance(definition)
-        record = res.get(group, {"matcher": None, "handler": None})
-        record["matcher"] = record["matcher"] | matcher if record["matcher"] else matcher
-        res[group] = record
+def build_matchers_and_handlers(
+    parsed: argparse.Namespace, strategy: Strategy
+) -> typing.Tuple[
+    typing.Dict[typing.Optional[str], dict],
+    typing.List[streamson.matcher.Matcher],
+    typing.List[streamson.handler.BaseHandler],
+]:
+    groups: typing.Dict[typing.Optional[str], dict] = {}
+    matchers: typing.List[streamson.matcher.Matcher] = []
+    handlers: typing.List[streamson.handler.BaseHandler] = []
+    if hasattr(parsed, "matcher"):
+        for matcher in parsed.matcher:
+            name, group, _, definition = parse_element(matcher)
+            matcher = Matcher.from_name(name).instance(definition)
+            matchers.append(matcher)
+            record = groups.get(group, {"matcher": None, "handler": None})
+            record["matcher"] = record["matcher"] | matcher if record["matcher"] else matcher
+            groups[group] = record
 
     for handler in parsed.handler:
         name, group, options, definition = parse_element(handler)
-        handler = Handler.from_name(name).instance(definition, *options)
-        record = res.get(group, {"matcher": None, "handler": None})
+        hndlr = Handler.from_name(name)
+        strategy.check_handler(hndlr)
+        handler = hndlr.instance(definition, *options)
+        handlers.append(handler)
+        record = groups.get(group, {"matcher": None, "handler": None})
         record["handler"] = record["handler"] + handler if record["handler"] else handler
-        res[group] = record
+        groups[group] = record
 
-    return res
+    return groups, matchers, handlers
+
+
+def all_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
+    groups, _, handlers = build_matchers_and_handlers(parsed, Strategy.ALL)
+    is_converter = any(e["handler"].is_converter() for e in groups.values())
+
+    all_strategy = streamson.all.All(is_converter)
+
+    for record in groups.values():
+        all_strategy.add_handler(record["handler"])
+
+    for item in input_gen:
+        for output in all_strategy.process(item):
+            if is_converter and output.data:
+                sys.stdout.write(bytes(output.data).decode())
+
+        if not is_converter:
+            sys.stdout.write(item.decode())
+
+    if is_converter:
+        for output in all_strategy.terminate():
+            if output.data:
+                sys.stdout.write(bytes(output.data).decode())
+    else:
+        all_strategy.terminate()
+
+    for handler in handlers:
+        # analyser handler specific
+        if isinstance(handler, streamson.handler.AnalyserHandler):
+            print("JSON structure:", file=sys.stderr)
+            for item in handler.results():
+                print(f"  {item[0] or '<root>'}: {item[1]}", file=sys.stderr)
 
 
 def filter_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    groups = build_matchers_and_handlers(parsed)
+    groups, _, _ = build_matchers_and_handlers(parsed, Strategy.FILTER)
     fltr = streamson.filter.Filter()
 
     for record in groups.values():
@@ -221,14 +291,14 @@ def filter_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byte
         for output in fltr.process(item):
             if output.data:
                 sys.stdout.write(bytes(output.data).decode())
-    else:
-        # Just return stdin
-        for input_data in input_gen:
-            sys.stdout.buffer.write(input_data)
+
+    for output in fltr.terminate():
+        if output.data:
+            sys.stdout.write(bytes(output.data).decode())
 
 
 def extract_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    groups = build_matchers_and_handlers(parsed)
+    groups, _, _ = build_matchers_and_handlers(parsed, Strategy.EXTRACT)
     extract = streamson.extract.Extract()
 
     for record in groups.values():
@@ -244,11 +314,16 @@ def extract_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byt
                 first = False
             if output.data:
                 sys.stdout.write(bytes(output.data).decode())
+
+    for output in extract.terminate():
+        if output.data:
+            sys.stdout.write(bytes(output.data).decode())
+
     sys.stdout.write(parsed.after)
 
 
 def convert_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    groups = build_matchers_and_handlers(parsed)
+    groups, _, _ = build_matchers_and_handlers(parsed, Strategy.CONVERT)
     convert = streamson.convert.Convert()
 
     for record in groups.values():
@@ -259,9 +334,13 @@ def convert_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byt
             if output.data:
                 sys.stdout.write(bytes(output.data).decode())
 
+    for output in convert.terminate():
+        if output.data:
+            sys.stdout.write(bytes(output.data).decode())
+
 
 def trigger_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
-    groups = build_matchers_and_handlers(parsed)
+    groups, _, _ = build_matchers_and_handlers(parsed, Strategy.TRIGGER)
     trigger = streamson.trigger.Trigger()
 
     for record in groups.values():
@@ -270,6 +349,8 @@ def trigger_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byt
     for item in input_gen:
         trigger.process(item)
         sys.stdout.write(item.decode())
+
+    trigger.terminate()
 
 
 def main():
@@ -281,6 +362,7 @@ def main():
 
     strategies = parser.add_subparsers(help="strategies", dest="strategy")
     strategies.required = True
+    all_parser(strategies)
     convert_parser(strategies)
     extract_parser(strategies)
     filter_parser(strategies)
@@ -302,6 +384,8 @@ def main():
         convert_strategy(options, input_generator())
     elif options.strategy == "trigger":
         trigger_strategy(options, input_generator())
+    elif options.strategy == "all":
+        all_strategy(options, input_generator())
 
 
 if __name__ == "__main__":

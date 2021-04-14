@@ -21,7 +21,7 @@ impl Trigger {
         Ok(Self { trigger })
     }
 
-    /// Adds matcher for Extract
+    /// Adds matcher for Trigger
     ///
     /// # Arguments
     /// * `matcher` - matcher to be added (`Simple`, `Depth`, ...)

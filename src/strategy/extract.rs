@@ -16,8 +16,9 @@ impl Extract {
     /// # Arguments
     /// * `export_path` - indicator whether path is required in further processing
     #[new]
+    #[args(export_path = "None")]
     pub fn new(export_path: Option<bool>) -> PyResult<Self> {
-        let export_path = export_path.unwrap_or(true);
+        let export_path = export_path.unwrap_or(false);
         let extract = strategy::Extract::new().set_export_path(export_path);
         Ok(Self { extract })
     }

@@ -1,6 +1,6 @@
 use pyo3::{class::PyNumberProtocol, prelude::*};
 use std::sync::{Arc, Mutex};
-use streamson_lib::handler;
+use streamson_lib::{handler, Handler};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -24,6 +24,7 @@ impl BaseHandler {
         Default::default()
     }
 
+    /// Merges two handlers together
     pub fn merge(&self, other: &Self) -> Self {
         let mut joined = handler::Group::new();
         self.inner
@@ -43,6 +44,11 @@ impl BaseHandler {
         Self {
             inner: Arc::new(Mutex::new(joined)),
         }
+    }
+
+    /// Indicator whether the handler converts data
+    pub fn is_converter(&self) -> bool {
+        self.inner.lock().unwrap().is_converter()
     }
 }
 

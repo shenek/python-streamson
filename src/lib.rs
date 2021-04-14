@@ -6,7 +6,7 @@ pub use handler::{
     PythonHandler, PythonToken, RegexHandler, ReplaceHandler, ShortenHandler, StdoutHandler,
     UnstringifyHandler,
 };
-pub use strategy::{Convert, Extract, Filter, PythonStrategy, Trigger};
+pub use strategy::{All, Convert, Extract, Filter, PythonStrategy, Trigger};
 
 use pyo3::{
     class::{basic::CompareOp, PyNumberProtocol, PyObjectProtocol},
@@ -167,6 +167,7 @@ impl PyObjectProtocol for PythonOutput {
 /// This module is a python module implemented in Rust.
 #[pymodule]
 fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<All>()?;
     m.add_class::<Convert>()?;
     m.add_class::<Extract>()?;
     m.add_class::<Filter>()?;
