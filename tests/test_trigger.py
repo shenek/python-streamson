@@ -45,7 +45,6 @@ def test_simple(io_reader, data, kind, extract_path):
     assert handler.pop_front() is None
 
 
-@pytest.mark.skip("Nested matches seems to be broken in streamson-lib")
 @pytest.mark.parametrize(
     "kind,extract_path",
     [

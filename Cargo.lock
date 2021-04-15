@@ -290,9 +290,9 @@ checksum = "fbee7696b84bbf3d89a1c2eccff0850e3047ed46bfcd2e92c29a2d074d57e252"
 
 [[package]]
 name = "streamson-lib"
-version = "7.0.0"
+version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8e3e02c71e8db9ec96a29843eb2d17d1a26e589f9405c1716d8afe8d41b8b07"
+checksum = "817f870c9024becbbfd7177f5a44e402741ba7f104b7e09a5bc57542f873282b"
 dependencies = [
  "regex",
  "sedregex",
