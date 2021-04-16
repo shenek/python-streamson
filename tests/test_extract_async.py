@@ -30,7 +30,7 @@ async def test_simple(make_async_gen, convert, extract_path):
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
-    async_out = streamson.extract_async(make_async_gen()(), matcher, handler, extract_path)
+    async_out = streamson.extract_async(make_async_gen()(), [(matcher, handler)], extract_path)
 
     res = []
 
@@ -85,7 +85,7 @@ async def test_depth(make_async_gen, convert, extract_path):
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
-    async_out = streamson.extract_async(make_async_gen()(), matcher, handler, extract_path)
+    async_out = streamson.extract_async(make_async_gen()(), [(matcher, handler)], extract_path)
 
     res = []
     async for rec in async_out:
@@ -132,7 +132,7 @@ async def test_invert(make_async_gen, convert, extract_path):
     matcher = ~streamson.DepthMatcher("2")
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
-    async_out = streamson.extract_async(make_async_gen()(), matcher, handler, extract_path)
+    async_out = streamson.extract_async(make_async_gen()(), [(matcher, handler)], extract_path)
 
     res = []
     async for rec in async_out:
@@ -180,7 +180,7 @@ async def test_all(make_async_gen, convert, extract_path):
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
-    async_out = streamson.extract_async(make_async_gen()(), matcher, handler, extract_path)
+    async_out = streamson.extract_async(make_async_gen()(), [(matcher, handler)], extract_path)
 
     res = []
     async for rec in async_out:
@@ -225,7 +225,7 @@ async def test_any(make_async_gen, convert, extract_path):
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
-    async_out = streamson.extract_async(make_async_gen()(), matcher, handler, extract_path)
+    async_out = streamson.extract_async(make_async_gen()(), [(matcher, handler)], extract_path)
 
     res = []
     async for rec in async_out:
@@ -274,7 +274,7 @@ async def test_complex(make_async_gen, convert, extract_path):
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
-    async_out = streamson.extract_async(make_async_gen()(), matcher, handler, extract_path)
+    async_out = streamson.extract_async(make_async_gen()(), [(matcher, handler)], extract_path)
 
     res = []
     async for rec in async_out:

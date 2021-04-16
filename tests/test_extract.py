@@ -49,9 +49,9 @@ def test_simple(io_reader, data, kind, convert, extract_path):
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 5, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 5, extract_path)
 
     output = Output(extracted).generator()
     assert next(output) == ('{"users"}[0]' if extract_path else None, b'"john"')
@@ -105,9 +105,9 @@ def test_depth(io_reader, data, kind, convert, extract_path):
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 5, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 5, extract_path)
 
     output = Output(extracted).generator()
     assert next(output) == (
@@ -136,10 +136,10 @@ def test_depth(io_reader, data, kind, convert, extract_path):
     buff_handler = BufferHandler(use_path=extract_path)
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
         io_reader.seek(0)
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 5, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 5, extract_path)
 
     output = Output(extracted).generator()
     assert next(output) == (
@@ -194,9 +194,9 @@ def test_invert(io_reader, data, kind, convert, extract_path):
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 5, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 5, extract_path)
     output = Output(extracted).generator()
 
     assert next(output) == (
@@ -251,9 +251,9 @@ def test_all(io_reader, data, kind, convert, extract_path):
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 5, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 5, extract_path)
     output = Output(extracted).generator()
 
     assert next(output) == ('{"users"}[1]' if extract_path else None, b'"carl"')
@@ -306,9 +306,9 @@ def test_any(io_reader, data, kind, convert, extract_path):
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 5, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 5, extract_path)
 
     output = Output(extracted).generator()
 
@@ -383,9 +383,9 @@ def test_complex(io_reader, data, kind, convert, extract_path):
     handler = PythonConverterHandler(convert, extract_path) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        extracted = streamson.extract_iter((e for e in data), matcher, handler, extract_path)
+        extracted = streamson.extract_iter((e for e in data), [(matcher, handler)], extract_path)
     elif kind == Kind.FD:
-        extracted = streamson.extract_fd(io_reader, matcher, handler, 55555, extract_path)
+        extracted = streamson.extract_fd(io_reader, [(matcher, handler)], 55555, extract_path)
 
     output = Output(extracted).generator()
 

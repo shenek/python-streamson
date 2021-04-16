@@ -8,7 +8,7 @@ from streamson.output import Output
 @pytest.mark.asyncio
 async def test_basic(make_async_gen):
 
-    async_out = streamson.all_async(make_async_gen()(), IndenterHandler())
+    async_out = streamson.all_async(make_async_gen()(), [IndenterHandler()])
 
     res = []
     async for rec in async_out:

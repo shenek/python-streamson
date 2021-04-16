@@ -37,9 +37,9 @@ def test_simple(io_reader, data, kind, convert):
     handler = PythonConverterHandler(convert) + buff_handler if convert else buff_handler
 
     if kind == Kind.ITER:
-        filtered = streamson.filter_iter((e for e in data), matcher, handler)
+        filtered = streamson.filter_iter((e for e in data), [(matcher, handler)])
     elif kind == Kind.FD:
-        filtered = streamson.filter_fd(io_reader, matcher, handler, 5)
+        filtered = streamson.filter_fd(io_reader, [(matcher, handler)], 5)
 
     output = Output(filtered).generator()
     assert next(output) == (None, b'{"users": [], "groups": ["admins", "users"]}')
