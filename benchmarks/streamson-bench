@@ -11,7 +11,7 @@ import time
 import typing
 from contextlib import nullcontext  # type: ignore
 
-from streamson import SimpleMatcher, extract_fd, extract_iter
+from streamson import BaseHandler, SimpleMatcher, extract_fd
 
 BUFF_SIZE = 1024 * 1024  # use 1MB buffer
 
@@ -29,10 +29,9 @@ def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typi
 
 
 def streamson_generic(
-    extract_function: typing.Callable,
     src_path: str,
     dst_path: typing.Optional[str] = None,
-    convert: typing.Callable[[str], typing.Any] = lambda x: x,
+    handler: typing.Optional[BaseHandler] = None,
 ) -> int:
     matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
 
@@ -42,31 +41,20 @@ def streamson_generic(
 
     count = 0
 
-    with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
+    with (pathlib.Path(dst_path).open("wb") if dst_path else nullcontext()) as outputf:
         with pathlib.Path(src_path).open("rb") as inputf:
-            for path, data in extract_function(reader(inputf), matcher, convert, require_path=False):
-                count += 1
-                if outputf:
-                    outputf.write(f"{data}\n")
+            for output in extract_fd(inputf, [(matcher, handler)], require_path=False):
+                if outputf and output.data:
+                    outputf.write(bytes(output.data))
+                if output.kind == "End":
+                    count += 1
+                    if outputf:
+                        outputf.write(b"\n")
 
     return count
 
 
-def streamson_fd(src_path: str, dst_path: typing.Optional[str] = None):
-    matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
-
-    count = 0
-    with (pathlib.Path(dst_path).open("w") if dst_path else nullcontext()) as outputf:
-        with pathlib.Path(src_path).open("rb") as inputf:
-            for path, data in extract_fd(inputf, matcher, buffer_size=BUFF_SIZE, require_path=False):
-                count += 1
-                if outputf:
-                    outputf.write(f"{data!r}\n")
-    return count
-
-
-streamson = functools.partial(streamson_generic, extract_iter, convert=json.loads)
-streamson_raw = functools.partial(streamson_generic, extract_iter, convert=lambda x: x)
+streamson = functools.partial(streamson_generic, handler=None)
 
 
 def std_generic(load_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:
@@ -87,8 +75,6 @@ stdlib = functools.partial(std_generic, json.load)
 
 STRATEGIES: typing.Dict[str, typing.Callable] = {
     "streamson": streamson,
-    "streamson-raw": streamson_raw,
-    "streamson-fd": streamson_fd,
     "stdlib": stdlib,
 }
 
@@ -97,7 +83,6 @@ try:
     import hyperjson
 
     STRATEGIES["hyperjson"] = functools.partial(std_generic, hyperjson.load)
-    STRATEGIES["streamson-hyperjson"] = functools.partial(streamson_generic, extract_iter, convert=hyperjson.loads)
 except ImportError:
     pass
 
