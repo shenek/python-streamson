@@ -38,6 +38,7 @@ hyperjson  = ["hyperjson"]
 cffi = "*"
 bandit = "~1.6.2"
 black = {version = "*", allow-prereleases = true}
+faker = "~8.1.0"
 flake8 = "*"
 hyperjson = "*"
 isort = {version = "*", extras = ["pyproject"]}

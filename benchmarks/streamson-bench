@@ -11,6 +11,8 @@ import time
 import typing
 from contextlib import nullcontext  # type: ignore
 
+from faker import Faker
+
 from streamson import BaseHandler, SimpleMatcher, extract_fd
 
 BUFF_SIZE = 1024 * 1024  # use 1MB buffer
@@ -34,10 +36,6 @@ def streamson_generic(
     handler: typing.Optional[BaseHandler] = None,
 ) -> int:
     matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
-
-    def reader(fd) -> typing.Generator[bytes, None, None]:
-        while (data := fd.read(BUFF_SIZE)) != b"":
-            yield data
 
     count = 0
 
@@ -102,18 +100,20 @@ except ImportError:
 
 
 def generate(output_path: str, user_count: int, group_count: int):
+    Faker.seed(0)
+    faker = Faker()
     with pathlib.Path(output_path).open("w") as f:
         f.write("{\n")
         f.write('\t"users": [\n')
         users = []
         for i in range(user_count):
-            users.append(f'\t\t{json.dumps({"id": i, "name": f"user{i:08x}"})}')
+            users.append(f'\t\t{json.dumps({"id": i, "name": faker.name()})}')
         f.write(",\n".join(users))
         f.write("\n\t],\n")
         f.write('\t"groups": [\n')
         groups = []
         for i in range(group_count):
-            groups.append(f'\t\t{json.dumps({"id": i, "name": f"group{i:08x}"})}')
+            groups.append(f'\t\t{json.dumps({"id": i, "name": faker.name()})}')
         f.write(",\n".join(groups))
         f.write("\t]\n")
         f.write("}\n")
