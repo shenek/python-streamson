@@ -9,12 +9,10 @@ from .matcher import Matcher
 def convert_iter(
     input_gen: typing.Generator[bytes, None, None],
     matchers_and_handlers: typing.List[typing.Tuple[Matcher, BaseHandler]],
-    require_path: bool = True,
 ) -> typing.Generator[PythonOutput, None, None]:
     """Converts handlers on matched data from a file description
     :param input_gen: input generator
     :param matchers_and_handlers: handler and matchers combination
-    :param: require_path: is path required for handlers
 
     :yields: converted data
     """
@@ -34,13 +32,11 @@ def convert_fd(
     input_fd: typing.IO[bytes],
     matchers_and_handlers: typing.List[typing.Tuple[Matcher, BaseHandler]],
     buffer_size: int = 1024 * 1024,
-    require_path: bool = True,
 ) -> typing.Generator[PythonOutput, None, None]:
     """Converts handlers on matched data from a file description
     :param input_fd: input generator
     :param matchers_and_handlers: handler and matchers combination
     :param: buffer_size: how many bytes can be read from a file at once
-    :param: require_path: is path required for handlers
 
     :yields: converted data
     """
@@ -62,12 +58,10 @@ def convert_fd(
 async def convert_async(
     input_gen: typing.AsyncGenerator[bytes, None],
     matchers_and_handlers: typing.List[typing.Tuple[Matcher, BaseHandler]],
-    require_path: bool = True,
 ) -> typing.AsyncGenerator[PythonOutput, None]:
     """Convert handlers on matched data from async generator
     :param: input_gen: input generator
     :param matchers_and_handlers: handler and matchers combination
-    :param: require_path: is path required for handlers
 
     :yields: input data
     """
