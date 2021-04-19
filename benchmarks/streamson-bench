@@ -13,7 +13,7 @@ from contextlib import nullcontext  # type: ignore
 
 from faker import Faker
 
-from streamson import BaseHandler, SimpleMatcher, extract_fd
+from streamson import SimpleMatcher, extract_fd
 
 BUFF_SIZE = 1024 * 1024  # use 1MB buffer
 
@@ -30,29 +30,31 @@ def ijson_generic(parse_function: typing.Callable, src_path: str, dst_path: typi
     return count
 
 
-def streamson_generic(
+def streamson(
     src_path: str,
     dst_path: typing.Optional[str] = None,
-    handler: typing.Optional[BaseHandler] = None,
 ) -> int:
     matcher = SimpleMatcher('{"users"}[]{"name"}') | SimpleMatcher('{"groups"}[]{"name"}')
+    handler = None
 
     count = 0
 
     with (pathlib.Path(dst_path).open("wb") if dst_path else nullcontext()) as outputf:
         with pathlib.Path(src_path).open("rb") as inputf:
             for output in extract_fd(inputf, [(matcher, handler)], require_path=False):
-                if outputf and output.data:
-                    outputf.write(bytes(output.data))
-                if output.kind == "End":
+                if output is None:
                     count += 1
                     if outputf:
                         outputf.write(b"\n")
+                elif outputf:
+                    path, data = output
+                    if data:
+                        outputf.write(data[1:-1])  # convert "Name" -> Name
 
     return count
 
 
-streamson = functools.partial(streamson_generic, handler=None)
+streamson = functools.partial(streamson)
 
 
 def std_generic(load_function: typing.Callable, src_path: str, dst_path: typing.Optional[str] = None) -> int:

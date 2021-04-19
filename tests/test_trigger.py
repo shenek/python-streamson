@@ -31,10 +31,10 @@ def test_simple(io_reader, data, kind, extract_path):
     handler = BufferHandler(use_path=extract_path)
     output_data = b""
     if kind == Kind.ITER:
-        for e in streamson.trigger_iter((e for e in data), [(matcher, handler)], extract_path):
+        for e in streamson.trigger_iter((e for e in data), [(matcher, handler)]):
             output_data += e
     elif kind == Kind.FD:
-        for e in streamson.trigger_fd(io_reader, [(matcher, handler)], 5, extract_path):
+        for e in streamson.trigger_fd(io_reader, [(matcher, handler)], 5):
             output_data += e
 
     assert output_data == b'{"users": ["john", "carl", "bob"], "groups": ["admins", "users"]}'
@@ -66,10 +66,10 @@ def test_nested(io_reader, data, kind, extract_path):
     matcher = streamson.SimpleMatcher('{"users"}') | streamson.SimpleMatcher('{"users"}[0]')
     output_data = b""
     if kind == Kind.ITER:
-        for e in streamson.trigger_iter((e for e in data), [(matcher, handler)], extract_path):
+        for e in streamson.trigger_iter((e for e in data), [(matcher, handler)]):
             output_data += e
     elif kind == Kind.FD:
-        for e in streamson.trigger_fd(io_reader, [(matcher, handler)], 5, extract_path):
+        for e in streamson.trigger_fd(io_reader, [(matcher, handler)], 5):
             output_data += e
     assert output_data == b'{"users": ["john", "carl", "bob"], "groups": ["admins", "users"]}'
 

@@ -10,7 +10,7 @@ pub use extract::Extract;
 pub use filter::Filter;
 pub use trigger::Trigger;
 
-use super::{PythonOutput, StreamsonError};
+use super::{convert_output, PythonOutput, StreamsonError};
 use pyo3::prelude::*;
 use streamson_lib::strategy;
 
@@ -25,7 +25,7 @@ where
     fn _process(&mut self, input_data: &[u8]) -> PyResult<Vec<PythonOutput>> {
         match self.get_strategy().process(input_data) {
             Err(err) => Err(StreamsonError::new_err(err.to_string())),
-            Ok(output) => Ok(output.into_iter().map(|e| e.into()).collect()),
+            Ok(output) => Ok(output.into_iter().map(convert_output).collect()),
         }
     }
 
@@ -33,7 +33,7 @@ where
     fn _terminate(&mut self) -> PyResult<Vec<PythonOutput>> {
         match self.get_strategy().terminate() {
             Err(err) => Err(StreamsonError::new_err(err.to_string())),
-            Ok(output) => Ok(output.into_iter().map(|e| e.into()).collect()),
+            Ok(output) => Ok(output.into_iter().map(convert_output).collect()),
         }
     }
 }

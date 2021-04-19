@@ -8,13 +8,9 @@ pub use handler::{
 };
 pub use strategy::{All, Convert, Extract, Filter, PythonStrategy, Trigger};
 
-use pyo3::{
-    class::{basic::CompareOp, PyNumberProtocol, PyObjectProtocol},
-    create_exception, exceptions,
-    prelude::*,
-};
-use std::{convert::TryFrom, str::FromStr};
-use streamson_lib::{matcher, strategy::Output, Path};
+use pyo3::{class::PyNumberProtocol, create_exception, exceptions, prelude::*, types::PyBytes};
+use std::str::FromStr;
+use streamson_lib::{matcher, strategy::Output};
 
 create_exception!(streamson, StreamsonError, exceptions::PyValueError);
 
@@ -92,78 +88,20 @@ impl PyNumberProtocol for RustMatcher {
     }
 }
 
-/// Python class which represents the output data
-#[pyclass]
-#[derive(Debug, Clone)]
-pub struct PythonOutput {
-    #[pyo3(get)]
-    kind: String,
-    #[pyo3(get)]
-    path: Option<String>,
-    #[pyo3(get)]
-    data: Option<Vec<u8>>,
-}
+pub type PythonOutput = Option<(Option<String>, Option<PyObject>)>;
 
-impl From<Output> for PythonOutput {
-    fn from(output: Output) -> Self {
-        match output {
-            Output::Start(path_opt) => Self {
-                kind: "Start".into(),
-                path: path_opt.map(|e| e.to_string()),
-                data: None,
-            },
-            Output::Data(data) => Self {
-                kind: "Data".into(),
-                path: None,
-                data: Some(data),
-            },
-            Output::End => Self {
-                kind: "End".into(),
-                path: None,
-                data: None,
-            },
+fn convert_output(output: Output) -> PythonOutput {
+    match output {
+        Output::Start(path) => Some((path.map(|path| path.to_string()), None)),
+        Output::Data(data) => {
+            let gil = Python::acquire_gil();
+            let py = gil.python();
+            Some((None, Some(PyBytes::new(py, &data).into())))
         }
+        Output::End => None,
     }
 }
 
-#[pymethods]
-impl PythonOutput {
-    /// Create instance of PythonOutput handler
-    #[staticmethod]
-    pub fn make_start(path: Option<String>) -> Result<Self, PyErr> {
-        if let Some(path_str) = path {
-            let strref: &str = &path_str;
-            Ok(Output::Start(Some(
-                Path::try_from(strref).map_err(|e| StreamsonError::new_err(e.to_string()))?,
-            ))
-            .into())
-        } else {
-            Ok(Output::Start(None).into())
-        }
-    }
-
-    #[staticmethod]
-    pub fn make_data(data: Vec<u8>) -> Self {
-        Output::Data(data).into()
-    }
-
-    #[staticmethod]
-    pub fn make_end() -> Self {
-        Output::End.into()
-    }
-}
-
-#[pyproto]
-impl PyObjectProtocol for PythonOutput {
-    fn __richcmp__(&self, other: Self, op: CompareOp) -> PyResult<bool> {
-        match op {
-            CompareOp::Eq => {
-                Ok(other.data == self.data && other.kind == self.kind && other.path == self.path)
-            }
-            _ => unimplemented!(),
-        }
-    }
-}
 /// This module is a python module implemented in Rust.
 #[pymodule]
 fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -187,7 +125,6 @@ fn streamson(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<ShortenHandler>()?;
     m.add_class::<UnstringifyHandler>()?;
     m.add_class::<PythonToken>()?;
-    m.add_class::<PythonOutput>()?;
 
     Ok(())
 }

@@ -1,6 +1,7 @@
 import typing
 
-from streamson.streamson import All, PythonOutput
+from streamson.output import PythonOutput
+from streamson.streamson import All
 
 from .handler import BaseHandler
 

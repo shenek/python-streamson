@@ -41,7 +41,7 @@ class PythonConverterHandler(PythonHandler):
         def start(path: typing.Optional[str], matcher_idx: int, token: PythonToken) -> typing.Optional[bytes]:
             return None
 
-        def feed(data: typing.List[int], matcher_idx: int) -> typing.Optional[bytes]:
+        def feed(data: bytes, matcher_idx: int) -> typing.Optional[bytes]:
             buff[0] += bytes(data)
             return None
 

@@ -1,6 +1,6 @@
 import typing
 
-from streamson.streamson import PythonOutput
+PythonOutput = typing.Optional[typing.Tuple[typing.Optional[str], typing.Optional[bytes]]]
 
 
 class Output:
@@ -14,11 +14,16 @@ class Output:
     def generator(self) -> typing.Generator[typing.Tuple[typing.Optional[str], bytes], None, None]:
 
         for e in self.output_generator:
-            if e.kind == "Start":
-                self.path = e.path
-            elif e.kind == "Data":
-                self.data += bytes(e.data)
-            elif e.kind == "End":
+            if e is None:
+                # End was reached
                 yield self.path, self.data
                 self.data = bytes()
                 self.path = None
+            else:
+                path, data = e
+                if data:
+                    # Feed was reached
+                    self.data += data
+                else:
+                    # Start was reached
+                    self.path = path

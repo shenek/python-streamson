@@ -16,7 +16,7 @@ from streamson.handler import BufferHandler
 async def test_simple(make_async_gen, extract_path):
     handler = BufferHandler(use_path=extract_path)
     matcher = streamson.SimpleMatcher('{"users"}[]')
-    async_out = streamson.trigger_async(make_async_gen()(), [(matcher, handler)], extract_path)
+    async_out = streamson.trigger_async(make_async_gen()(), [(matcher, handler)])
 
     output_data = b""
     async for rec in async_out:

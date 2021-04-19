@@ -1,6 +1,7 @@
 import typing
 
-from streamson.streamson import Filter, PythonOutput
+from streamson.output import PythonOutput
+from streamson.streamson import Filter
 
 from .handler import BaseHandler
 from .matcher import Matcher
@@ -20,8 +21,8 @@ def filter_iter(
     for matcher, handler in matchers_and_handlers:
         filter_strategy.add_matcher(matcher.inner, handler)
     for item in input_gen:
-        for item in filter_strategy.process(item):
-            yield item
+        for filter_item in filter_strategy.process(item):
+            yield filter_item
 
     for output in filter_strategy.terminate():
         yield output

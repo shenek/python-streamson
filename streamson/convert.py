@@ -1,6 +1,7 @@
 import typing
 
-from streamson.streamson import Convert, PythonOutput
+from streamson.output import PythonOutput
+from streamson.streamson import Convert
 
 from .handler import BaseHandler
 from .matcher import Matcher

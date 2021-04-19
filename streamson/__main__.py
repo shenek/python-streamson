@@ -259,16 +259,16 @@ def all_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, 
 
     for item in input_gen:
         for output in all_strategy.process(item):
-            if is_converter and output.data:
-                sys.stdout.write(bytes(output.data).decode())
+            if is_converter and output and output[1]:
+                sys.stdout.write(output[1].decode())
 
         if not is_converter:
             sys.stdout.write(item.decode())
 
     if is_converter:
         for output in all_strategy.terminate():
-            if output.data:
-                sys.stdout.write(bytes(output.data).decode())
+            if output and output[1]:
+                sys.stdout.write(output[1].decode())
     else:
         all_strategy.terminate()
 
@@ -289,12 +289,12 @@ def filter_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byte
 
     for item in input_gen:
         for output in fltr.process(item):
-            if output.data:
-                sys.stdout.write(bytes(output.data).decode())
+            if output and output[1]:
+                sys.stdout.write(output[1].decode())
 
     for output in fltr.terminate():
-        if output.data:
-            sys.stdout.write(bytes(output.data).decode())
+        if output and output[1]:
+            sys.stdout.write(output[1].decode())
 
 
 def extract_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
@@ -308,16 +308,26 @@ def extract_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byt
     first = True
     for item in input_gen:
         for output in extract.process(item):
-            if not first and output.kind == "Start":
-                sys.stdout.write(parsed.separator)
-            else:
-                first = False
-            if output.data:
-                sys.stdout.write(bytes(output.data).decode())
+            if output:
+                path, data = output
+                if data:
+                    sys.stdout.write(data.decode())
+                else:
+                    if not first:
+                        sys.stdout.write(parsed.separator)
+                    else:
+                        first = False
 
     for output in extract.terminate():
-        if output.data:
-            sys.stdout.write(bytes(output.data).decode())
+        if output:
+            path, data = output
+            if data:
+                sys.stdout.write(data.decode())
+            if path:
+                if not first:
+                    sys.stdout.write(parsed.separator)
+                else:
+                    first = False
 
     sys.stdout.write(parsed.after)
 
@@ -331,12 +341,12 @@ def convert_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[byt
 
     for item in input_gen:
         for output in convert.process(item):
-            if output.data:
-                sys.stdout.write(bytes(output.data).decode())
+            if output and output[1]:
+                sys.stdout.write(output[1].decode())
 
     for output in convert.terminate():
-        if output.data:
-            sys.stdout.write(bytes(output.data).decode())
+        if output and output[1]:
+            sys.stdout.write(output[1].decode())
 
 
 def trigger_strategy(parsed: argparse.Namespace, input_gen: typing.Generator[bytes, None, None]):
