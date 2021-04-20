@@ -1,3 +1,14 @@
+4.0.0 (2021-04-20)
+------------------
+
+* upgraded streamson-lib to 7.0.1
+* handlers redone (streamson-lib uses streaming handlers)
+* added can use handlers from streamson-lib
+* added all strategy
+* API updated to be compatible with newer version of streamson-lib
+* running test on macos and windows
+* use Faker to generate nicer input for test data
+
 3.1.0 (2020-11-24)
 ------------------
 
